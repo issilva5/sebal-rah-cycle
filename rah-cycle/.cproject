@@ -27,11 +27,16 @@
 								<option id="nvcc.compiler.option.level.1105651876" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.303659067" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1930917804" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
+								<option id="nvcc.compiler.include.paths.583440873" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath"/>
+								<option id="nvcc.compiler.cpp11option.1959468321" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.698518636" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1723469462" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.364047412" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.107193875" name="NVCC Linker" superClass="nvcc.linker.base">
+								<option id="nvcc.linker.option.libs.1680412612" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="tiff"/>
+								</option>
 								<inputType id="nvcc.linker.input.84031566" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -54,6 +59,7 @@
 					<sass major="2" minor="0"/>
 					<ptx major="2" minor="0"/>
 				</executable>
+				<editor-arch major="2" minor="0"/>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
@@ -130,4 +136,12 @@
 		</scannerConfigBuildInfo>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/rah-cycle"/>
+		</configuration>
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/rah-cycle"/>
+		</configuration>
+	</storageModule>
 </cproject>

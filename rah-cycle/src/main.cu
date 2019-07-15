@@ -8,6 +8,7 @@
  * is strictly prohibited.
  */
 #include "cuda-utils.h"
+#include "utils.h"
 
 static const int WORK_SIZE = 256;
 
