@@ -70,5 +70,13 @@ void write_line_tiff(TIFF* tif, double tif_line[], int line);
  */
 void close_tiffs(TIFF* tiffs[], int quant_tiffs);
 
+/**
+ * @brief  Writes values from an array to a specific line in a TIFF. Doing this for each respective array and TIFF at the vectors parameters passed.
+ * @note:  The positions both vectors should be corresponding arrays and TIFFs.
+ * @param  products_line: Vector containing the arrays of a line to be written on a respective TIFF.
+ * @param  products: Vector containing the respective TIFF for each array.
+ * @param  line: Number of the line that should be written.
+ */
+void save_tiffs(std::vector<double*> products_line, std::vector<TIFF*> products, int line);
 
 #endif /* UTILS_H_ */

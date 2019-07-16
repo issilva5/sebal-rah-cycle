@@ -32,7 +32,7 @@ void setup(TIFF* new_tif, TIFF* base_tif){
  */
 void check_open_tiff(TIFF* tif){
     if(!tif){
-        cerr << "Open tiff problem" << endl;
+        std::cerr << "Open tiff problem" << std::endl;
         exit(1);
     }
 };
@@ -46,7 +46,7 @@ void check_open_tiff(TIFF* tif){
  */
 void read_line_tiff(TIFF* tif, double tif_line[], int line){
     if(TIFFReadScanline(tif, tif_line, line) < 0){
-        cerr << "Read problem" << endl;
+    	std::cerr << "Read problem" << std::endl;
         exit(3);
     }
 };
@@ -60,7 +60,7 @@ void read_line_tiff(TIFF* tif, double tif_line[], int line){
  */
 void read_line_tiff(TIFF* tif, tdata_t tif_line, int line){
     if(TIFFReadScanline(tif, tif_line, line) < 0){
-        cerr << "Read problem" << endl;
+    	std::cerr << "Read problem" << std::endl;
         exit(3);
     }
 };
@@ -93,7 +93,7 @@ double read_position_tiff(TIFF* tif, int col, int line){
 void write_line_tiff(TIFF* tif, double tif_line[], int line){
 
     if (TIFFWriteScanline(tif, tif_line, line) < 0){
-        cerr << "Write problem!" << endl;
+    	std::cerr << "Write problem!" << std::endl;
         exit(4);
     }
 
@@ -107,4 +107,18 @@ void write_line_tiff(TIFF* tif, double tif_line[], int line){
 void close_tiffs(TIFF* tiffs[], int quant_tiffs){
     for(int i = 1; i < quant_tiffs; i++)
         TIFFClose(tiffs[i]);
+};
+
+/**
+ * @brief  Writes values from an array to a specific line in a TIFF. Doing this for each respective array and TIFF at the vectors parameters passed.
+ * @note:  The positions both vectors should be corresponding arrays and TIFFs.
+ * @param  products_line: Vector containing the arrays of a line to be written on a respective TIFF.
+ * @param  products: Vector containing the respective TIFF for each array.
+ * @param  line: Number of the line that should be written.
+ */
+void save_tiffs(std::vector<double*> products_line, std::vector<TIFF*> products, int line){
+
+    for (unsigned i = 0; i < products.size(); i++)
+        write_line_tiff(products[i], products_line[i], line);
+
 };
