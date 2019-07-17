@@ -1,14 +1,3 @@
-/*
- * utils.h
- *
- *  Created on: 15/07/2019
- *      Author: itallo
- */
-
-#ifndef UTILS_H_
-#define UTILS_H_
-
-
 #pragma once
 
 #include "types.h"
@@ -78,5 +67,3 @@ void close_tiffs(TIFF* tiffs[], int quant_tiffs);
  * @param  line: Number of the line that should be written.
  */
 void save_tiffs(std::vector<double*> products_line, std::vector<TIFF*> products, int line);
-
-#endif /* UTILS_H_ */

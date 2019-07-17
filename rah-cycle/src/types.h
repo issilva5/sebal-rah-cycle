@@ -12,13 +12,16 @@
 
 #include <tiffio.h>
 #include <math.h>
+#include <iostream>
 #include <string.h>
 #include <string>
+#include <fstream>
+#include <sstream>
+#include <map>
 #include <vector>
-#include <time.h>
+#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
 
 // CONSTANTS DECLARATION
 

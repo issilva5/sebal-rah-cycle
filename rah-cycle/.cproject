@@ -27,8 +27,13 @@
 								<option id="nvcc.compiler.option.level.1105651876" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.303659067" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1930917804" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
-								<option id="nvcc.compiler.include.paths.583440873" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath"/>
+								<option id="nvcc.compiler.include.paths.583440873" name="Include paths (-I)" superClass="nvcc.compiler.include.paths"/>
 								<option id="nvcc.compiler.cpp11option.1959468321" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
+								<option id="nvcc.compiler.compileroptions.726961290" superClass="nvcc.compiler.compileroptions" valueType="stringList"/>
+								<option id="nvcc.compiler.def.symbols.1482504761" superClass="nvcc.compiler.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_MWAITXINTRIN_H_INCLUDED"/>
+									<listOptionValue builtIn="false" value="__STRICT_ANSI__"/>
+								</option>
 								<inputType id="nvcc.compiler.input.cu.698518636" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.1723469462" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.364047412" superClass="nvcc.compiler.input.c"/>

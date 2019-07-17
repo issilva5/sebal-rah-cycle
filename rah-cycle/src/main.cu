@@ -10,14 +10,6 @@
 #include "cuda-utils.h"
 #include "utils.h"
 
-void allocateArraysDevice(std::vector<double*> arrays, uint32 size) {
-
-	for (unsigned i = 0; i < arrays.size(); i++) {
-		HANDLE_ERROR(cudaMalloc((void** ) &arrays[i], size * sizeof(double)));
-	}
-
-}
-
 __global__ void correctionCycle(double* surfaceTemperatureLine, double* zomLine,
 		double* ustarRLine, double* ustarWLine, double* rahRLine,
 		double* rahWLine, double *a, double *b, double *u200) {
@@ -26,7 +18,8 @@ __global__ void correctionCycle(double* surfaceTemperatureLine, double* zomLine,
 	int pos = 0;
 
 	double sensibleHeatFlux = RHO * SPECIFIC_HEAT_AIR
-			* (*a + *b * (surfaceTemperatureLine[pos] - 273.15)) / rahRLine[pos];
+			* (*a + *b * (surfaceTemperatureLine[pos] - 273.15))
+			/ rahRLine[pos];
 
 	double ustarPow3 = ustarRLine[pos] * ustarRLine[pos] * ustarRLine[pos];
 
@@ -116,14 +109,11 @@ int main(int argc, char **argv) {
 	/********** RAH CYCLE BEGIN **********/
 
 	TIFF *ustarR, *aerodynamicResistanceR;
-	TIFF *ustarW, *aerodynamicResistanceW, *sensibleHeatFlux;
+	TIFF *ustarW, *aerodynamicResistanceW;
 	TIFF *surfaceTemperature;
-	zom = TIFFOpen(zomPath.c_str(), "rm"); //It's not modified into the rah cycle
-	surfaceTemperature = TIFFOpen(surfaceTemperaturePath.c_str(), "rm");
 
-	//It's only written into the rah cycle
-	sensibleHeatFlux = TIFFOpen(sensibleHeatPath.c_str(), "w8m");
-	setup(sensibleHeatFlux, zom);
+	zom = TIFFOpen(zomPath.c_str(), "rm");
+	surfaceTemperature = TIFFOpen(surfaceTemperaturePath.c_str(), "rm");
 
 	//Auxiliaries arrays calculation
 	double zomLine[widthBand], surfaceTemperatureLine[widthBand];
@@ -135,19 +125,36 @@ int main(int argc, char **argv) {
 	double *devZom, *devTS;
 	double *devUstarR, *devUstarW;
 	double *devRahR, *devRahW;
+	double *devA, *devB, *devU200;
 
-	//Allocating arrays on device
-	allocateArraysDevice(std::vector<double*> { devZom, devTS, devUstarR, devUstarW,
-			devRahR, devRahW }, widthBand);
+	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devA, sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devB, sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devU200, sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devZom, widthBand * sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devTS, widthBand * sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devUstarR, widthBand * sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devUstarW, widthBand * sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devRahR, widthBand * sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devRahW, widthBand * sizeof(double)));
+
+	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
 	//Auxiliaries loop variables
 	int i = 0;
-	bool Erro = true;
 	double rahHot0, rahHot;
+	double dtHot, a, b, u200;
 
-	while (Erro) {
-
-		rahHot0 = 1245; //TODO hotPixel.aerodynamicResistance[i];
+	while (true) {
 
 		//Opening the ustar e rah TIFFs for read and write based on i parity
 		//If i is even then the TIFFs with 0 in the path name will be readable
@@ -165,6 +172,8 @@ int main(int argc, char **argv) {
 			aerodynamicResistanceW = TIFFOpen(rahPath1.c_str(), "w8m");
 			setup(aerodynamicResistanceW, zom);
 
+			rahHot = read_position_tiff(aerodynamicResistanceR, 456, 24564);
+
 		} else {
 
 			//Since ustar is both write and read into the rah cycle, two TIFF will be needed
@@ -177,32 +186,36 @@ int main(int argc, char **argv) {
 			aerodynamicResistanceW = TIFFOpen(rahPath0.c_str(), "w8m");
 			setup(aerodynamicResistanceW, zom);
 
+			rahHot = read_position_tiff(aerodynamicResistanceR, 456, 24564);
+
 		}
+
+		if (i > 0 && fabs(1 - rahHot0 / rahHot) >= 0.05)
+			break;
+
+		rahHot0 = rahHot;
 
 		//Coefficients calculation
 //		double dtHot = hHot * rahHot0 / (RHO * SPECIFIC_HEAT_AIR);
 //		double b = dtHot / (hotPixel.temperature - coldPixel.temperature);
 //		double a = -b * (coldPixel.temperature - 273.15); TODO deal with hot/cold pixel
 
-		double dtHot = hHot * rahHot0 / (RHO * SPECIFIC_HEAT_AIR);
-		double b = 154;
-		double a = 7864;
+		b = 154;
+		a = 7864;
 
-		double u200 = 35.654654; //TODO
+		u200 = 35.654654; //TODO
 
-		double *devA, *devB, *devU200;
+		/********** COPY VARIABLES FROM HOST TO DEVICE MEMORY BEGIN **********/
+		//TODO use constant memory?
+		HANDLE_ERROR(cudaMemcpy(devA, &a, sizeof(int), cudaMemcpyHostToDevice));
 
-		/********** COPY HOST TO DEVICE MEMORY BEGIN TODO **********/
-
-		HANDLE_ERROR(cudaMemcpy(devA, (void**) &a, sizeof(int), cudaMemcpyHostToDevice));
-
-		HANDLE_ERROR(cudaMemcpy(devB, (void**) &b, sizeof(int), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(devB, &b, sizeof(int), cudaMemcpyHostToDevice));
 
 		HANDLE_ERROR(
-				cudaMemcpy(devU200, (void**) &u200, sizeof(double),
+				cudaMemcpy(devU200, &u200, sizeof(double),
 						cudaMemcpyHostToDevice));
 
-		/********** COPY HOST TO DEVICE MEMORY END **********/
+		/********** COPY  VARIABLES FROM HOST TO DEVICE MEMORY END **********/
 
 		for (int line = 0; line < heightBand; line++) {
 
@@ -257,12 +270,41 @@ int main(int argc, char **argv) {
 			/********** COPY DEVICE TO HOST MEMORY END **********/
 
 			save_tiffs(std::vector<double*> { ustarWriteLine,
-					aerodynamicResistanceWriteLine }, std::vector<TIFF*> { ustarW,
-					aerodynamicResistanceW }, line);
+					aerodynamicResistanceWriteLine }, std::vector<TIFF*> {
+					ustarW, aerodynamicResistanceW }, line);
+
+			TIFFClose(ustarR);
+			TIFFClose(ustarW);
+			TIFFClose(aerodynamicResistanceR);
+			TIFFClose(aerodynamicResistanceW);
+
+			i++;
 
 		}
 
 	}
+
+	/********** DE-ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
+
+	HANDLE_ERROR(cudaFree(devA));
+
+	HANDLE_ERROR(cudaFree(devB));
+
+	HANDLE_ERROR(cudaFree(devU200));
+
+	HANDLE_ERROR(cudaFree(devZom));
+
+	HANDLE_ERROR(cudaFree(devTS));
+
+	HANDLE_ERROR(cudaFree(devUstarR));
+
+	HANDLE_ERROR(cudaFree(devUstarW));
+
+	HANDLE_ERROR(cudaFree(devRahR));
+
+	HANDLE_ERROR(cudaFree(devRahW));
+
+	/********** DE-ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
 	/********** RAH CYCLE END **********/
 
