@@ -65,6 +65,10 @@ MTL::MTL(std::string metadata_path){
     }
 };
 
+Sensor::Sensor(){
+
+}
+
 /**
  * @brief  Constructor.
  * @param  number_sensor: Number of the satellite sensor.

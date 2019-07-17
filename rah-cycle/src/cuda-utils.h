@@ -1,7 +1,5 @@
 #pragma once
 
-#ifndef __CUDA-UTILS_H__
-#define __CUDA-UTILS_H__
 #include <cuda.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,4 +26,3 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 		exit(1);														\
 	} }
 
-#endif //UTILS.H

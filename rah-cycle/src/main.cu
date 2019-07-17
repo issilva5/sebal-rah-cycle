@@ -9,56 +9,18 @@
  */
 #include "cuda-utils.h"
 #include "utils.h"
-
-__global__ void correctionCycle(double* surfaceTemperatureLine, double* zomLine,
-		double* ustarRLine, double* ustarWLine, double* rahRLine,
-		double* rahWLine, double *a, double *b, double *u200) {
-
-	//Identify position
-	int pos = 0;
-
-	double sensibleHeatFlux = RHO * SPECIFIC_HEAT_AIR
-			* (*a + *b * (surfaceTemperatureLine[pos] - 273.15))
-			/ rahRLine[pos];
-
-	double ustarPow3 = ustarRLine[pos] * ustarRLine[pos] * ustarRLine[pos];
-
-	double L = -1
-			* ((RHO * SPECIFIC_HEAT_AIR * ustarPow3
-					* surfaceTemperatureLine[pos])
-					/ (VON_KARMAN * GRAVITY * sensibleHeatFlux));
-
-	double y01 = pow((1 - (16 * 0.1) / L), 0.25);
-	double y2 = pow((1 - (16 * 2) / L), 0.25);
-	double x200 = pow((1 - (16 * 200) / L), 0.25);
-
-	double psi01, psi2, psi200;
-
-	if (!isnan(L) && L > 0) {
-
-		psi01 = -5 * (0.1 / L);
-		psi2 = -5 * (2 / L);
-		psi200 = -5 * (2 / L);
-
-	} else {
-
-		psi01 = 2 * log((1 + y01 * y01) / 2);
-
-		psi2 = 2 * log((1 + y2 * y2) / 2);
-
-		psi200 = 2 * log((1 + x200) / 2) + log((1 + x200 * x200) / 2)
-				- 2 * atan(x200) + 0.5 * M_PI;
-
-	}
-
-	ustarWLine[pos] = (VON_KARMAN * *u200) / (log(200 / zomLine[pos]) - psi200);
-
-	rahWLine[pos] = (log(2 / 0.1) - psi2 + psi01)
-			/ (ustarWLine[pos] * VON_KARMAN);
-
-}
+#include "products.h"
+#include "rah_cycle.cuh"
 
 int main(int argc, char **argv) {
+
+	/*********** PARAMETERS **********/
+
+	Sensor sensor = Sensor();
+	Station station = Station();
+	MTL mtl = MTL();
+
+	/*********** PARAMETERS **********/
 
 	/*********** FIRST ZOM, USTAR E RAH VALUES BEGIN **********/
 
@@ -95,16 +57,25 @@ int main(int argc, char **argv) {
 
 	/*********** DEALING WITH HOT PIXEL BEGIN **********/
 
+	Candidate hotPixel = Candidate();
+	Candidate coldPixel = Candidate();
+
 	aerodynamicResistance = TIFFOpen(rahPath0.c_str(), "rm");
 
-	//Extract the hot pixel aerodynamic_resistance //TODO deal with hot pixel
-	//hot_pixel.aerodynamic_resistance.push_back(read_position_tiff(aerodynamic_resistance, hot_pixel.col, hot_pixel.line));
-	//double H_hot = hot_pixel.net_radiation - hot_pixel.soil_heat_flux;
-	double hHot = 154564;
+	double hHot = hotPixel.net_radiation - hotPixel.soil_heat_flux;
 
 	TIFFClose(aerodynamicResistance);
 
 	/*********** DEALING WITH HOT PIXEL END **********/
+
+	/*********** u200 BEGIN **********/
+
+	double ustarStation = (VON_KARMAN * station.v6)
+			/ (log(station.WIND_SPEED / station.SURFACE_ROUGHNESS));
+	double u200 = (ustarStation / VON_KARMAN)
+			* log(200 / station.SURFACE_ROUGHNESS);
+
+	/*********** u200 END **********/
 
 	/********** RAH CYCLE BEGIN **********/
 
@@ -121,13 +92,13 @@ int main(int argc, char **argv) {
 	double aerodynamicResistanceReadLine[widthBand],
 			aerodynamicResistanceWriteLine[widthBand];
 
+	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
+
 	//Auxiliaries arrays calculation to device
 	double *devZom, *devTS;
 	double *devUstarR, *devUstarW;
 	double *devRahR, *devRahW;
 	double *devA, *devB, *devU200;
-
-	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
 	HANDLE_ERROR(cudaMalloc((void** ) &devA, sizeof(double)));
 
@@ -152,7 +123,7 @@ int main(int argc, char **argv) {
 	//Auxiliaries loop variables
 	int i = 0;
 	double rahHot0, rahHot;
-	double dtHot, a, b, u200;
+	double dtHot, a, b;
 
 	while (true) {
 
@@ -196,14 +167,9 @@ int main(int argc, char **argv) {
 		rahHot0 = rahHot;
 
 		//Coefficients calculation
-//		double dtHot = hHot * rahHot0 / (RHO * SPECIFIC_HEAT_AIR);
-//		double b = dtHot / (hotPixel.temperature - coldPixel.temperature);
-//		double a = -b * (coldPixel.temperature - 273.15); TODO deal with hot/cold pixel
-
-		b = 154;
-		a = 7864;
-
-		u200 = 35.654654; //TODO
+		dtHot = hHot * rahHot0 / (RHO * SPECIFIC_HEAT_AIR);
+		b = dtHot / (hotPixel.temperature - coldPixel.temperature);
+		a = -b * (coldPixel.temperature - 273.15);
 
 		/********** COPY VARIABLES FROM HOST TO DEVICE MEMORY BEGIN **********/
 		//TODO use constant memory?
