@@ -215,6 +215,19 @@ void ustar_fuction(double u200, double zom_line[], int width_band, double ustar_
 void aerodynamic_resistance_fuction(double ustar_line[], int width_band, double aerodynamic_resistance_line[]);
 
 /**
+ * @brief  Computes Sensible Heat Flux (H).
+ * @param  surface_temperature_line[]: Array containing the specified line from the TS computation.
+ * @param  aerodynamic_resistance_line[]: Array containing the specified line from the Rah computation.
+ * @param  net_radiation_line[]: Array containing the specified line from the Rn computation.
+ * @param  soil_heat_line[]: Array containing the specified line from the G computation.
+ * @param  sensible_heat_flux_line[]: Auxiliary array for save the calculated value of H computation for the line.
+ * @param  a: Coefficient a.
+ * @param  b: Coefficient b.
+ * @param  width_band: Band width.
+ */
+void sensible_heat_flux_function(double surface_temperature_line[], double aerodynamic_resistance_line[], double net_radiation_line[], double soil_heat_flux_line[], double sensible_heat_flux_line[],  double a, double b, double width_band);
+
+/**
  * @brief  Computes Latent Heat Flux (LE).
  * @param  net_radiation_line[]: Array containing the specified line from the Rn computation.
  * @param  soil_heat_flux_line[]: Array containing the specified line from the G computation.

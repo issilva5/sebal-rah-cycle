@@ -1,9 +1,6 @@
 #pragma once
 
-#include "types.h"
-#include "utils.h"
 #include "products.h"
-#include "parameters.h"
 
 /**
  * @brief  Struct to manage the products calculation.
