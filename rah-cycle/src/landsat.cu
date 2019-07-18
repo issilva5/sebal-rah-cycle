@@ -320,7 +320,8 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 			/********** KERNEL BEGIN **********/
 
-			correctionCycle<<<10, 10>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200);
+			if (width_band < 65535)
+				correctionCycle<<<width_band, 1>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200);
 
 			/********** KERNEL END **********/
 

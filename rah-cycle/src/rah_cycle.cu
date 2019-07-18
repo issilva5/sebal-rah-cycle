@@ -1,22 +1,14 @@
 #include "rah_cycle.cuh"
 
-__global__ void correctionCycle(double* surfaceTemperatureLine, double* zomLine,
-		double* ustarRLine, double* ustarWLine, double* rahRLine,
+__global__ void correctionCycle(double* surfaceTemperatureLine, double* zomLine, double* ustarRLine, double* ustarWLine, double* rahRLine,
 		double* rahWLine, double *a, double *b, double *u200) {
 
 	//Identify position
-	int pos = 0;
+	int pos = blockIdx.x;
 
-	double sensibleHeatFlux = RHO * SPECIFIC_HEAT_AIR
-			* (*a + *b * (surfaceTemperatureLine[pos] - 273.15))
-			/ rahRLine[pos];
+	double sensibleHeatFlux = RHO * SPECIFIC_HEAT_AIR * (*a + *b * (surfaceTemperatureLine[pos] - 273.15)) / rahRLine[pos];
 
-	double ustarPow3 = ustarRLine[pos] * ustarRLine[pos] * ustarRLine[pos];
-
-	double L = -1
-			* ((RHO * SPECIFIC_HEAT_AIR * ustarPow3
-					* surfaceTemperatureLine[pos])
-					/ (VON_KARMAN * GRAVITY * sensibleHeatFlux));
+	double L = -1 * ((RHO * SPECIFIC_HEAT_AIR * pow(ustarRLine[pos], 3) * surfaceTemperatureLine[pos]) / (VON_KARMAN * GRAVITY * sensibleHeatFlux));
 
 	double y01 = pow((1 - (16 * 0.1) / L), 0.25);
 	double y2 = pow((1 - (16 * 2) / L), 0.25);
@@ -36,14 +28,12 @@ __global__ void correctionCycle(double* surfaceTemperatureLine, double* zomLine,
 
 		psi2 = 2 * log((1 + y2 * y2) / 2);
 
-		psi200 = 2 * log((1 + x200) / 2) + log((1 + x200 * x200) / 2)
-				- 2 * atan(x200) + 0.5 * M_PI;
+		psi200 = 2 * log((1 + x200) / 2) + log((1 + x200 * x200) / 2) - 2 * atan(x200) + 0.5 * M_PI;
 
 	}
 
 	ustarWLine[pos] = (VON_KARMAN * *u200) / (log(200 / zomLine[pos]) - psi200);
 
-	rahWLine[pos] = (log(2 / 0.1) - psi2 + psi01)
-			/ (ustarWLine[pos] * VON_KARMAN);
+	rahWLine[pos] = (log(2 / 0.1) - psi2 + psi01) / (ustarWLine[pos] * VON_KARMAN);
 
 }
