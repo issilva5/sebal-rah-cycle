@@ -89,14 +89,13 @@ void Landsat::process_partial_products(TIFF* read_bands[], MTL mtl, Station stat
 		surface_temperature_function(radiance_line, enb_emissivity_line, mtl.number_sensor, width_band, surface_temperature_line);
 		large_wave_radiation_surface_function(eo_emissivity_line, surface_temperature_line, width_band, large_wave_radiation_surface_line);
 		ea_emissivity_function(tal_line, width_band, ea_emissivity_line);
-		large_wave_radiation_atmosphere_function(ea_emissivity_line, width_band, station.temperature_image,
-				large_wave_radiation_atmosphere_line);
-		net_radiation_function(short_wave_radiation_line, large_wave_radiation_surface_line, large_wave_radiation_atmosphere_line,
-				albedo_line, eo_emissivity_line, width_band, net_radiation_line);
+		large_wave_radiation_atmosphere_function(ea_emissivity_line, width_band, station.temperature_image, large_wave_radiation_atmosphere_line);
+		net_radiation_function(short_wave_radiation_line, large_wave_radiation_surface_line, large_wave_radiation_atmosphere_line, albedo_line,
+				eo_emissivity_line, width_band, net_radiation_line);
 		soil_heat_flux_function(ndvi_line, surface_temperature_line, albedo_line, net_radiation_line, width_band, soil_heat_line);
 
-		save_tiffs(std::vector<double*> { albedo_line, ndvi_line, evi_line, lai_line, soil_heat_line, surface_temperature_line,
-				net_radiation_line }, std::vector<TIFF*> { albedo, ndvi, evi, lai, soil_heat, surface_temperature, net_radiation }, line);
+		save_tiffs(std::vector<double*> { albedo_line, ndvi_line, evi_line, lai_line, soil_heat_line, surface_temperature_line, net_radiation_line },
+				std::vector<TIFF*> { albedo, ndvi, evi, lai, soil_heat, surface_temperature, net_radiation }, line);
 	}
 
 	//Closing the open TIFFs.
@@ -158,8 +157,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	double sigma = 0.409 * sin(((2 * PI / 365) * mtl.julian_day) - 1.39);
 	double phi = (PI / 180) * station.latitude;
 	double omegas = acos(-tan(phi) * tan(sigma));
-	double Ra24h = (((24 * 60 / PI) * GSC * dr) * (omegas * sin(phi) * sin(sigma) + cos(phi) * cos(sigma) * sin(omegas)))
-			* (1000000 / 86400.0);
+	double Ra24h = (((24 * 60 / PI) * GSC * dr) * (omegas * sin(phi) * sin(sigma) + cos(phi) * cos(sigma) * sin(omegas))) * (1000000 / 86400.0);
 
 	//Short wave radiation incident in 24 hours (Rs24h)
 	double Rs24h = station.INTERNALIZATION_FACTOR * sqrt(station.v7_max - station.v7_min) * Ra24h;
@@ -188,8 +186,8 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 		ustar_fuction(u200, zom_line, width_band, ustar_line);
 		aerodynamic_resistance_fuction(ustar_line, width_band, aerodynamic_resistance_line);
 
-		save_tiffs(std::vector<double*> { zom_line, ustar_line, aerodynamic_resistance_line }, std::vector<TIFF*> { zom, ustar,
-				aerodynamic_resistance }, line);
+		save_tiffs(std::vector<double*> { zom_line, ustar_line, aerodynamic_resistance_line },
+				std::vector<TIFF*> { zom, ustar, aerodynamic_resistance }, line);
 	}
 
 	//Initial zom, ustar and aerodynamic_resistance are calculated and saved.
@@ -207,12 +205,8 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	double H_hot = hot_pixel.net_radiation - hot_pixel.soil_heat_flux;
 
 	TIFFClose(aerodynamic_resistance);
-	TIFF *ustar_tifR, *ustar_tifW, *aerodynamic_resistance_tifR, *aerodynamic_resistance_tifW, *sensible_heat_flux;
+	TIFF *ustar_tifR, *ustar_tifW, *aerodynamic_resistance_tifR, *aerodynamic_resistance_tifW;
 	zom = TIFFOpen(zom_path.c_str(), "rm"); //It's not modified into the rah cycle
-
-	//It's only written into the rah cycle
-	sensible_heat_flux = TIFFOpen(sensible_heat_flux_path.c_str(), "w8m");
-	setup(sensible_heat_flux, albedo);
 
 	//Auxiliaries arrays calculation
 	double ustar_read_line[width_band], ustar_write_line[width_band];
@@ -247,9 +241,12 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
 	int i = 0;
+	bool Erro = true;
 	double rah_hot0, rah_hot, dt_hot, a, b;
 
-	while (true) {
+	while (Erro) {
+
+		rah_hot0 = hot_pixel.aerodynamic_resistance[i];
 
 		if (i % 2) {
 			//Since ustar is both write and read into the rah cycle, two TIFF will be needed
@@ -262,8 +259,6 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 			aerodynamic_resistance_tifW = TIFFOpen(aerodynamic_resistance_tif0_path.c_str(), "w8m");
 			setup(aerodynamic_resistance_tifW, albedo);
 
-			rah_hot = read_position_tiff(aerodynamic_resistance_tifR, hot_pixel.col, hot_pixel.line);
-
 		} else {
 			//Since ustar is both write and read into the rah cycle, two TIFF will be needed
 			ustar_tifR = TIFFOpen(ustar_tif0_path.c_str(), "rm");
@@ -275,14 +270,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 			aerodynamic_resistance_tifW = TIFFOpen(aerodynamic_resistance_tif1_path.c_str(), "w8m");
 			setup(aerodynamic_resistance_tifW, albedo);
 
-			rah_hot = read_position_tiff(aerodynamic_resistance_tifR, hot_pixel.col, hot_pixel.line);
-
 		}
-
-		if (i > 0 && fabs(1 - rah_hot0 / rah_hot) >= 0.05)
-			break;
-
-		rah_hot0 = rah_hot;
 
 		dt_hot = H_hot * rah_hot0 / (RHO * SPECIFIC_HEAT_AIR);
 		b = dt_hot / (hot_pixel.temperature - cold_pixel.temperature);
@@ -320,8 +308,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 			/********** KERNEL BEGIN **********/
 
-			if (width_band < 65535)
-				correctionCycle<<<width_band, 1>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200);
+			correctionCycle<<<width_band, 1>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200);
 
 			/********** KERNEL END **********/
 
@@ -332,6 +319,11 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 			HANDLE_ERROR(cudaMemcpy(aerodynamic_resistance_write_line, devRahW, width_band * sizeof(double), cudaMemcpyDeviceToHost));
 
 			/********** COPY DEVICE TO HOST MEMORY END **********/
+
+			if (line == hot_pixel.line) {
+				rah_hot = aerodynamic_resistance_write_line[hot_pixel.col];
+				hot_pixel.aerodynamic_resistance.push_back(rah_hot);
+			}
 
 			//Saving new ustar e rah
 			save_tiffs(std::vector<double*> { ustar_write_line, aerodynamic_resistance_write_line }, std::vector<TIFF*> { ustar_tifW,
@@ -344,6 +336,10 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 		TIFFClose(aerodynamic_resistance_tifR);
 		TIFFClose(aerodynamic_resistance_tifW);
 
+		std::cout << "rah_hot0: " << rah_hot0 << " " << "rah_hot: " << rah_hot << std::endl;
+		std::cout << fabs(1 - rah_hot0 / rah_hot) << std::endl;
+
+		Erro = (fabs(1 - rah_hot0 / rah_hot) >= 0.05);
 		i++;
 
 	}
@@ -399,11 +395,11 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 		read_line_tiff(soil_heat, soil_heat_line, line);
 		read_line_tiff(albedo, albedo_line, line);
 
-		sensible_heat_flux_function(surface_temperature_line, aerodynamic_resistance_line, net_radiation_line, soil_heat_line, sensible_heat_flux_line, a, b, width_band);
+		sensible_heat_flux_function(surface_temperature_line, aerodynamic_resistance_line, net_radiation_line, soil_heat_line,
+				sensible_heat_flux_line, a, b, width_band);
 		latent_heat_flux_function(net_radiation_line, soil_heat_line, sensible_heat_flux_line, width_band, latent_heat_flux_line);
 		net_radiation_24h_function(albedo_line, Ra24h, Rs24h, width_band, net_radiation_24h_line);
-		evapotranspiration_fraction_fuction(latent_heat_flux_line, net_radiation_line, soil_heat_line, width_band,
-				evapotranspiration_fraction_line);
+		evapotranspiration_fraction_fuction(latent_heat_flux_line, net_radiation_line, soil_heat_line, width_band, evapotranspiration_fraction_line);
 		sensible_heat_flux_24h_fuction(evapotranspiration_fraction_line, net_radiation_24h_line, width_band, sensible_heat_flux_24h_line);
 		latent_heat_flux_24h_function(evapotranspiration_fraction_line, net_radiation_24h_line, width_band, latent_heat_flux_24h_line);
 		evapotranspiration_24h_function(latent_heat_flux_24h_line, station, width_band, evapotranspiration_24h_line);
