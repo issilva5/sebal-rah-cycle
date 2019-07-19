@@ -278,9 +278,9 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 		/********** COPY VARIABLES FROM HOST TO DEVICE MEMORY BEGIN **********/
 		//TODO use constant memory?
-		HANDLE_ERROR(cudaMemcpy(devA, &a, sizeof(int), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(devA, &a, sizeof(double), cudaMemcpyHostToDevice));
 
-		HANDLE_ERROR(cudaMemcpy(devB, &b, sizeof(int), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(devB, &b, sizeof(double), cudaMemcpyHostToDevice));
 
 		HANDLE_ERROR(cudaMemcpy(devU200, &u200, sizeof(double), cudaMemcpyHostToDevice));
 
