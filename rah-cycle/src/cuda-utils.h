@@ -3,6 +3,7 @@
 #include <cuda.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "cuda_profiler_api.h"
 
 static void HandleError(cudaError_t err, const char *file, int line) {
 	if (err != cudaSuccess) {

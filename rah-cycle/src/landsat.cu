@@ -212,6 +212,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	double ustar_read_line[width_band], ustar_write_line[width_band];
 	double aerodynamic_resistance_read_line[width_band], aerodynamic_resistance_write_line[width_band];
 
+	cudaProfilerStart();
 	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
 	//Auxiliaries arrays calculation to device
@@ -343,6 +344,8 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 		i++;
 
 	}
+
+	cudaProfilerStop();
 
 	TIFFClose(zom);
 
