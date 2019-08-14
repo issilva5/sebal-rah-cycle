@@ -219,12 +219,15 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	double *devUstarR, *devUstarW;
 	double *devRahR, *devRahW;
 	double *devA, *devB, *devU200;
+	int *devSize;
 
 	HANDLE_ERROR(cudaMalloc((void** ) &devA, sizeof(double)));
 
 	HANDLE_ERROR(cudaMalloc((void** ) &devB, sizeof(double)));
 
 	HANDLE_ERROR(cudaMalloc((void** ) &devU200, sizeof(double)));
+
+	HANDLE_ERROR(cudaMalloc((void** ) &devSize, sizeof(int)));
 
 	HANDLE_ERROR(cudaMalloc((void** ) &devZom, width_band * sizeof(double)));
 
@@ -238,12 +241,20 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 	HANDLE_ERROR(cudaMalloc((void** ) &devRahW, width_band * sizeof(double)));
 
+	HANDLE_ERROR(cudaMemcpy(devSize, &width_band, sizeof(int), cudaMemcpyHostToDevice));
+
 	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
+	//TODO PROFILING
+	float timeline;
+	cudaEvent_t start, end;
+	cudaEventCreate(&start);
+	cudaEventCreate(&end);
+	printf("loop, line, ms_time\n");
 	int i = 0;
 	bool Erro = true;
 	double rah_hot0, rah_hot, dt_hot, a, b;
-
+	//cudaProfilerStart();
 	while (Erro) {
 
 		rah_hot0 = hot_pixel.aerodynamic_resistance[i];
@@ -308,7 +319,16 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 			/********** KERNEL BEGIN **********/
 
-			correctionCycle<<<width_band, 1>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200);
+			cudaEventRecord(start, 0);
+			correctionCycle<<<(width_band + 255) / 256, 256>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200, devSize);
+			cudaDeviceSynchronize();
+
+			cudaEventRecord(end, 0);
+			cudaEventElapsedTime(&timeline, start, end);
+			cudaEventSynchronize(end);
+
+			printf("%d, %d, %.3f\n", i, line, timeline);
+//			acummulated += timeline;
 
 			/********** KERNEL END **********/
 
@@ -341,6 +361,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 		Erro = (fabs(1 - rah_hot0 / rah_hot) >= 0.05);
 		i++;
+		printf("%d\n", i);
 
 	}
 
@@ -367,15 +388,16 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	HANDLE_ERROR(cudaFree(devRahW));
 
 	/********** DE-ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
+	//cudaProfilerStop();
 
 	if (i % 2) {
 
-		printf("Rah_after is aerodynamic_resistance_tif1_path\n");
+		//printf("Rah_after is aerodynamic_resistance_tif1_path\n");
 		aerodynamic_resistance_tifR = TIFFOpen(aerodynamic_resistance_tif1_path.c_str(), "rm");
 
 	} else {
 
-		printf("Rah_after is aerodynamic_resistance_tif0_path\n");
+		//printf("Rah_after is aerodynamic_resistance_tif0_path\n");
 		aerodynamic_resistance_tifR = TIFFOpen(aerodynamic_resistance_tif0_path.c_str(), "rm");
 
 	}
