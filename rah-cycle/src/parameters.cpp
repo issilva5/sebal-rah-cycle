@@ -88,16 +88,16 @@ Sensor::Sensor(int number_sensor, int year){
 std::string Sensor::capture_parameter_path(int number_sensor, int year){
     switch(number_sensor){
         case 8:
-            return "../../../../Downloads/input/parameters/LC.data";
+            return "/home/itallo/Downloads/input/parameters/LC.data";
             break;
         case 7:
-            return "../../../../Downloads/input/parameters/ETM.data";
+            return "/home/itallo/Downloads/input/parameters/ETM.data";
             break;
         case 5:
             if(year < 1992)
-                return "../../../../Downloads/input/parameters/TM1.data";
+                return "/home/itallo/Downloads/input/parameters/TM1.data";
             else
-                return "../../../../Downloads/input/parameters/TM2.data";
+                return "/home/itallo/Downloads/input/parameters/TM2.data";
             break;
         default:
         	std::cerr << "Sensor problem" << std::endl;
