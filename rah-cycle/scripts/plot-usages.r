@@ -4,6 +4,7 @@ library("ggplot2")
 library("scales")
 library("data.table")
 library("stringi")
+library("benchmarkme")
 
 args = commandArgs(trailingOnly=TRUE)
 
@@ -24,7 +25,7 @@ proctimes_min_TS = min(proctimes$TIMESTAMP)
 
 cpu_usage$IDLE = 100 - cpu_usage$IDLE
 
-mem_usage$TOTAL = (mem_usage$USED/mem_usage$TOTAL)*100
+mem_usage$USED_GB = mem_usage$USED*get_ram()
 
 cpu_usage$TIMESTAMP = cpu_usage$TIMESTAMP - cpu_min_TS
 mem_usage$TIMESTAMP = mem_usage$TIMESTAMP - mem_min_TS
@@ -32,14 +33,14 @@ disk_usage$TIMESTAMP = disk_usage$TIMESTAMP - disk_min_TS
 proctimes$TIMESTAMP = proctimes$TIMESTAMP - proctimes_min_TS
 
 cpu_usage = cpu_usage[c("TIMESTAMP", "IDLE", "GNICE")]
-mem_usage = mem_usage[c("TIMESTAMP", "TOTAL", "BUFFER.CACHE")]
 disk_read_usage = disk_usage[c("TIMESTAMP", "KB_READ.S", "KB_WRITE.S")]#TIMESTAMP, KB/S, TYPE(READ/WRITE)
 disk_write_usage = disk_usage[c("TIMESTAMP", "KB_READ.S", "KB_WRITE.S")]
+mem_usage_gb = mem_usage[c("TIMESTAMP", "USED_GB", "TYPE")]
+mem_usage = mem_usage[c("TIMESTAMP", "USED", "TYPE")]
 
 disk_write_usage$"KB_READ.S" = disk_write_usage$"KB_WRITE.S"
 
 setnames(cpu_usage, c("TIMESTAMP", "USAGE", "TYPE"))
-setnames(mem_usage, c("TIMESTAMP", "USAGE", "TYPE"))
 setnames(disk_read_usage, c("TIMESTAMP", "MB.S", "TYPE"))
 setnames(disk_write_usage, c("TIMESTAMP", "MB.S", "TYPE"))
 
@@ -55,6 +56,8 @@ data_disk$TYPE = as.character(data_disk$TYPE)
 data_disk$TYPE = factor(data_disk$TYPE, levels = unique(data_disk$TYPE))
 
 data_disk$MB.S = data_disk$MB.S/1024
+
+proctimes <- filter(proctimes, ID != "")
 
 med_proctimes = 0
 previous = 0
@@ -79,9 +82,9 @@ pplot = ggplot(cpu_usage, aes(x=TIMESTAMP, y=USAGE, group=TYPE, colour=TYPE)) +
 ggsave("usage_cpu.png", pplot, width=14)
 
 
-pplot = ggplot(mem_usage, aes(x=TIMESTAMP, y=USAGE, group=TYPE, colour=TYPE)) + 
+pplot = ggplot(mem_usage_gb, aes(x=TIMESTAMP, y=USAGE_GB, group=TYPE, colour=TYPE)) + 
 	geom_line(size=0.3) + xlab("TIME (s)") + 
-	ylab("USAGE (%)") + 
+	ylab("USAGE (GB)") + 
 	geom_vline(xintercept = proctimes$TIMESTAMP, linetype=2, size=0.15) + 
 	annotate("text", x = med_proctimes, y=0.0, label = proctimes$ID) + 
 	scale_colour_manual(values=c("#0066CC")) + 
