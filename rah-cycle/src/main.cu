@@ -57,7 +57,6 @@ int main(int argc, char *argv[]) {
 		check_open_tiff(bands_resampled[i]);
 	}
 
-	printf("It began\n");
 	Landsat landsat = Landsat(tal_path, output_path);
 	printf("PHASE 1 - START, %d\n", int(time(NULL)));
 	landsat.process_partial_products(bands_resampled, mtl, station, sensor);
