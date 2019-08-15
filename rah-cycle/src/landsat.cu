@@ -126,10 +126,14 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	TIFFGetField(albedo, TIFFTAG_IMAGEWIDTH, &width_band);
 
 	// Selecting hot and cold pixels
-
+	printf("PHASE 2 - PIXEL SELECTION HOT BEGIN, %d\n", int(time(NULL)));
 	Candidate hot_pixel = select_hot_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band);
+	printf("PHASE 2 - PIXEL SELECTION HOT END, %d\n", int(time(NULL)));
+	printf("PHASE 2 - PIXEL SELECTION COLD BEGIN, %d\n", int(time(NULL)));
 	Candidate cold_pixel = select_cold_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band);
+	printf("PHASE 2 - PIXEL SELECTION COLD END, %d\n", int(time(NULL)));
 
+	printf("PHASE 2 - BEFORE RAH CYCLE BEGIN, %d\n", int(time(NULL)));
 	//Intermediaries products
 	double sensible_heat_flux_line[width_band];
 	double zom_line[width_band];
@@ -198,6 +202,16 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	TIFFClose(ustar);
 	TIFFClose(aerodynamic_resistance);
 
+	printf("PHASE 2 - BEFORE RAH CYCLE END, %d\n", int(time(NULL)));
+
+	printf("PHASE 2 - RAH CYCLE BEGIN, %d\n", int(time(NULL)));
+
+	float timeline;
+	cudaEvent_t start, end;
+	cudaEventCreate(&start);
+	cudaEventCreate(&end);
+	cudaEventRecord(start, 0);
+
 	aerodynamic_resistance = TIFFOpen(aerodynamic_resistance_tif0_path.c_str(), "rm");
 
 	//Extract the hot pixel aerodynamic_resistance
@@ -245,12 +259,6 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
-	//TODO PROFILING
-	float timeline;
-	cudaEvent_t start, end;
-	cudaEventCreate(&start);
-	cudaEventCreate(&end);
-	printf("loop, line, ms_time\n");
 	int i = 0;
 	bool Erro = true;
 	double rah_hot0, rah_hot, dt_hot, a, b;
@@ -319,16 +327,9 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 			/********** KERNEL BEGIN **********/
 
-			cudaEventRecord(start, 0);
+
 			correctionCycle<<<(width_band + 255) / 256, 256>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200, devSize);
 			cudaDeviceSynchronize();
-
-			cudaEventRecord(end, 0);
-			cudaEventElapsedTime(&timeline, start, end);
-			cudaEventSynchronize(end);
-
-			printf("%d, %d, %.3f\n", i, line, timeline);
-//			acummulated += timeline;
 
 			/********** KERNEL END **********/
 
@@ -388,7 +389,15 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	HANDLE_ERROR(cudaFree(devRahW));
 
 	/********** DE-ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
-	//cudaProfilerStop();
+
+	cudaEventRecord(end, 0);
+	cudaEventElapsedTime(&timeline, start, end);
+	cudaEventSynchronize(end);
+
+	printf("PHASE 2 - RAH CYCLE CUDA ELAPSED, %d\n", int(timeline));
+	printf("PHASE 2 - RAH CYCLE END, %d\n", int(time(NULL)));
+
+	printf("PHASE 2 - AFTER RAH CYCLE BEGIN, %d\n", int(time(NULL)));
 
 	if (i % 2) {
 
@@ -438,6 +447,8 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	TIFFClose(net_radiation);
 	TIFFClose(evapotranspiration_fraction);
 	TIFFClose(evapotranspiration_24h);
+
+	printf("PHASE 2 - AFTER RAH CYCLE END, %d\n", int(time(NULL)));
 
 }
 ;
