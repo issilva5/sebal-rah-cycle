@@ -23,6 +23,8 @@
     arg 09 - tal path
     arg 10 - station data path
     arg 11 - output path
+    arg 12 - dist
+    arg 13 - thread num
 
     Flag
     -dist=xxxx - value distance between sun and earth
@@ -42,7 +44,7 @@ int main(int argc, char *argv[]) {
 
 	Sensor sensor = Sensor(mtl.number_sensor, mtl.year);
 
-	if (argc == 13) {
+	if (argc >= 13) {
 		std::string dist_flag = argv[12];
 		if (dist_flag.substr(0, 6) == "-dist=")
 			mtl.distance_earth_sun = atof(dist_flag.substr(6, dist_flag.size()).c_str());
@@ -57,7 +59,10 @@ int main(int argc, char *argv[]) {
 		check_open_tiff(bands_resampled[i]);
 	}
 
-	Landsat landsat = Landsat(tal_path, output_path);
+	int threadNum = argc == 14 ? atoi(argv[13]) : 256;
+	printf("THREAD NUM: %d", threadNum);
+
+	Landsat landsat = Landsat(tal_path, output_path, threadNum);
 	printf("PHASE 1 - START, %d\n", int(time(NULL)));
 	landsat.process_partial_products(bands_resampled, mtl, station, sensor);
 	printf("PHASE 1 - END, %d\n", int(time(NULL)));

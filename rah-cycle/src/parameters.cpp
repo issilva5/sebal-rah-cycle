@@ -10,6 +10,8 @@ MTL::MTL(){
     this->sun_elevation = 0;
     this->rad_add_10 = 0;
     this->rad_mult_10 = 0;
+    this->image_hour = 0;
+    this->distance_earth_sun = 0;
 };
 
 /**
@@ -138,6 +140,11 @@ void Sensor::load_parameter_values(std::string sensor_path){
  */
 Station::Station(){
     this->temperature_image = 0;
+    this->latitude = 0;
+    this->longitude = 0;
+    this->v6 = 0;
+    this->v7_max = 0;
+    this->v7_min = 0;
 };
 
 /**

@@ -5,6 +5,7 @@
  * @brief  Empty constructor.
  */
 Landsat::Landsat() {
+	this->threadNum = 1;
 }
 ;
 
@@ -13,9 +14,10 @@ Landsat::Landsat() {
  * @param  tal_path: Path to tal TIFF.
  * @param  output_path: Output path where TIFF should be saved.
  */
-Landsat::Landsat(std::string tal_path, std::string output_path) {
+Landsat::Landsat(std::string tal_path, std::string output_path,  int threadNum) {
 	this->tal_path = tal_path;
 	this->output_path = output_path;
+	this->threadNum = threadNum;
 
 	//Initialize the path of products TIFF based on the output path.
 	this->albedo_path = output_path + "/alb.tif";
@@ -328,7 +330,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 			/********** KERNEL BEGIN **********/
 
 
-			correctionCycle<<<(width_band + 255) / 256, 256>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200, devSize);
+			correctionCycle<<<(width_band + this->threadNum - 1) / this->threadNum, this->threadNum >>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200, devSize);
 			cudaDeviceSynchronize();
 
 			/********** KERNEL END **********/
