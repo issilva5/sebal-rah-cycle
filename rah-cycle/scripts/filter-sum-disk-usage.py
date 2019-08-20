@@ -33,7 +33,7 @@ def main():
 
 		kb_rw = [float(a_line[3]), float(a_line[4])]
 
-		if(cmd == "run"):
+		if(cmd == "rah-cycle"):
 			if(ts in filtered_disk_usage_dict.keys()):
 				filtered_disk_usage_dict[ts][0] += kb_rw[0]
 				filtered_disk_usage_dict[ts][1] += kb_rw[1]

@@ -5,7 +5,7 @@ MEM_FILE_PATH=$2
 DISK_FILE_PATH=$3
 PROCTIMES_FILE_PATH=$4
 
-RESULT_DISK_FILE_PATH=$(pwd)/global_disk_usage.csv
+RESULT_DISK_FILE_PATH=$(pwd)/csv_data/global_disk_usage.csv
 
 echo "Filtering and summing disk usage data..."
 
