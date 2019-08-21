@@ -14,5 +14,6 @@ for i in $(seq 0 9); do
 	rm $OUTPUT_DIR/*.tif
 	tar -cvzf $OUTPUT_DIR/exec$i.tar.gz $OUTPUT_DIR/*.csv
 	rm $OUTPUT_DIR/*.csv
-
+	
+	echo $THREAD finished.
 done
