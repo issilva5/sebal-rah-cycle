@@ -128,12 +128,10 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	TIFFGetField(albedo, TIFFTAG_IMAGEWIDTH, &width_band);
 
 	// Selecting hot and cold pixels
-	printf("PHASE 2 - PIXEL SELECTION HOT BEGIN, %d\n", int(time(NULL)));
+	printf("PHASE 2 - PIXEL SELECTION, %d\n", int(time(NULL)));
 	Candidate hot_pixel = select_hot_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band);
-	printf("PHASE 2 - PIXEL SELECTION HOT END, %d\n", int(time(NULL)));
-	printf("PHASE 2 - PIXEL SELECTION COLD BEGIN, %d\n", int(time(NULL)));
 	Candidate cold_pixel = select_cold_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band);
-	printf("PHASE 2 - PIXEL SELECTION COLD END, %d\n", int(time(NULL)));
+	printf("PHASE 2 - PIXEL SELECTION, %d\n", int(time(NULL)));
 
 	printf("PHASE 2 - BEFORE RAH CYCLE BEGIN, %d\n", int(time(NULL)));
 	//Intermediaries products
@@ -209,9 +207,9 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	printf("PHASE 2 - RAH CYCLE BEGIN, %d\n", int(time(NULL)));
 
 	float timeline;
-	cudaEvent_t start, end;
-	cudaEventCreate(&start);
-	cudaEventCreate(&end);
+	//cudaEvent_t start, end;
+	//cudaEventCreate(&start);
+	//cudaEventCreate(&end);
 
 	aerodynamic_resistance = TIFFOpen(aerodynamic_resistance_tif0_path.c_str(), "rm");
 
@@ -227,9 +225,9 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	double ustar_read_line[width_band], ustar_write_line[width_band];
 	double aerodynamic_resistance_read_line[width_band], aerodynamic_resistance_write_line[width_band];
 
-	printf("CUDA EVENTS TIMING BEGIN\n");
+	//printf("CUDA EVENTS TIMING BEGIN\n");
 
-	cudaEventRecord(start, 0);
+	//cudaEventRecord(start, 0);
 
 	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
@@ -264,11 +262,11 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 	/********** ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
-	cudaEventRecord(end, 0);
-	cudaEventElapsedTime(&timeline, start, end);
-	cudaEventSynchronize(end);
+	//cudaEventRecord(end, 0);
+	//cudaEventElapsedTime(&timeline, start, end);
+	//cudaEventSynchronize(end);
 
-	printf("PHASE 2 - RAH CYCLE: ALLOCATING VARIABLES IN DEVICE MEMORY, %d\n", int(timeline));
+	//printf("PHASE 2 - RAH CYCLE: ALLOCATING VARIABLES IN DEVICE MEMORY, %d\n", int(timeline));
 
 	int i = 0;
 	bool Erro = true;
@@ -306,7 +304,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 		b = dt_hot / (hot_pixel.temperature - cold_pixel.temperature);
 		a = -b * (cold_pixel.temperature - 273.15);
 
-		cudaEventRecord(start, 0);
+		//cudaEventRecord(start, 0);
 
 		/********** COPY VARIABLES FROM HOST TO DEVICE MEMORY BEGIN **********/
 		//TODO use constant memory?
@@ -318,11 +316,11 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 		/********** COPY  VARIABLES FROM HOST TO DEVICE MEMORY END **********/
 
-		cudaEventRecord(end, 0);
-		cudaEventElapsedTime(&timeline, start, end);
-		cudaEventSynchronize(end);
+		//cudaEventRecord(end, 0);
+		//cudaEventElapsedTime(&timeline, start, end);
+		//cudaEventSynchronize(end);
 
-		printf("PHASE 2 - LOOP %d - RAH CYCLE: COPY VARIABLES FROM HOST TO DEVICE MEMORY, %d\n", i, int(timeline));
+		//printf("PHASE 2 - LOOP %d - RAH CYCLE: COPY VARIABLES FROM HOST TO DEVICE MEMORY, %d\n", i, int(timeline));
 
 		for (int line = 0; line < height_band; line++) {
 
@@ -332,7 +330,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 			read_line_tiff(ustar_tifR, ustar_read_line, line);
 			read_line_tiff(aerodynamic_resistance_tifR, aerodynamic_resistance_read_line, line);
 
-			cudaEventRecord(start, 0);
+			//cudaEventRecord(start, 0);
 
 			/********** COPY HOST TO DEVICE MEMORY BEGIN **********/
 
@@ -346,29 +344,29 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 			/********** COPY HOST TO DEVICE MEMORY END **********/
 
-			cudaEventRecord(end, 0);
-			cudaEventElapsedTime(&timeline, start, end);
-			cudaEventSynchronize(end);
+			//cudaEventRecord(end, 0);
+			//cudaEventElapsedTime(&timeline, start, end);
+			//cudaEventSynchronize(end);
 
-			printf("PHASE 2 - LOOP %d, LINE %d - RAH CYCLE: COPY HOST TO DEVICE MEMORY, %d\n", i, line, int(timeline));
+			//printf("PHASE 2 - LOOP %d, LINE %d - RAH CYCLE: COPY HOST TO DEVICE MEMORY, %d\n", i, line, int(timeline));
 
 
 
 			/********** KERNEL BEGIN **********/
-			cudaEventRecord(start, 0);
+			//cudaEventRecord(start, 0);
 
 			correctionCycle<<<(width_band + this->threadNum - 1) / this->threadNum, this->threadNum >>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200, devSize);
 			cudaDeviceSynchronize();
 
 			/********** KERNEL END **********/
 
-			cudaEventRecord(end, 0);
-			cudaEventElapsedTime(&timeline, start, end);
-			cudaEventSynchronize(end);
+			//cudaEventRecord(end, 0);
+			//cudaEventElapsedTime(&timeline, start, end);
+			//cudaEventSynchronize(end);
 
-			printf("PHASE 2  - LOOP %d, LINE %d - RAH CYCLE: KERNEL, %d\n", i, line, int(timeline));
+			//printf("PHASE 2  - LOOP %d, LINE %d - RAH CYCLE: KERNEL, %d\n", i, line, int(timeline));
 
-			cudaEventRecord(start, 0);
+			//cudaEventRecord(start, 0);
 
 			/********** COPY DEVICE TO HOST MEMORY BEGIN **********/
 
@@ -378,11 +376,11 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 			/********** COPY DEVICE TO HOST MEMORY END **********/
 
-			cudaEventRecord(end, 0);
-			cudaEventElapsedTime(&timeline, start, end);
-			cudaEventSynchronize(end);
+			//cudaEventRecord(end, 0);
+			//cudaEventElapsedTime(&timeline, start, end);
+			//cudaEventSynchronize(end);
 
-			printf("PHASE 2  - LOOP %d, LINE %d - RAH CYCLE: COPY DEVICE TO HOST MEMORY, %d\n", i, line, int(timeline));
+			//printf("PHASE 2  - LOOP %d, LINE %d - RAH CYCLE: COPY DEVICE TO HOST MEMORY, %d\n", i, line, int(timeline));
 
 			if (line == hot_pixel.line) {
 				rah_hot = aerodynamic_resistance_write_line[hot_pixel.col];
@@ -405,13 +403,13 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 		Erro = (fabs(1 - rah_hot0 / rah_hot) >= 0.05);
 		i++;
-		printf("%d\n", i);
+		//printf("%d\n", i);
 
 	}
 
 	TIFFClose(zom);
 
-	cudaEventRecord(start, 0);
+	//cudaEventRecord(start, 0);
 
 	/********** DE-ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
@@ -435,13 +433,13 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 	/********** DE-ALLOCATING VARIABLES IN DEVICE MEMORY BEGIN **********/
 
-	cudaEventRecord(end, 0);
-	cudaEventElapsedTime(&timeline, start, end);
-	cudaEventSynchronize(end);
+	//cudaEventRecord(end, 0);
+	//cudaEventElapsedTime(&timeline, start, end);
+	//cudaEventSynchronize(end);
 
-	printf("PHASE 2 - RAH CYCLE: DE-ALLOCATING VARIABLES IN DEVICE MEMORY, %d\n", int(timeline));
+	//printf("PHASE 2 - RAH CYCLE: DE-ALLOCATING VARIABLES IN DEVICE MEMORY, %d\n", int(timeline));
 
-	printf("CUDA EVENTS TIMING END\n");
+	//printf("CUDA EVENTS TIMING END\n");
 
 	printf("PHASE 2 - RAH CYCLE END, %d\n", int(time(NULL)));
 
