@@ -3,7 +3,7 @@
 /**
  * @brief  Empty constructor, all attributes are initialized with 0.
  */
-Candidate::Candidate(){
+CUDA_HOSTDEV Candidate::Candidate(){
     this->ndvi = 0;
     this->temperature = 0;
     this->net_radiation = 0;
@@ -15,7 +15,25 @@ Candidate::Candidate(){
     this->coefficient_variation = 0;
     this->zom = 0;
     this->ustar = 0;
+    this->aerodynamic_resistance_past = 0;
+    this->aerodynamic_resistance_actual = 0;
 }
+
+/*__device__ void Candidate::fill(double ndvi, double temperature, double net_radiation, double soil_heat_flux, double ho, int line, int col){
+	this->ndvi = ndvi;
+	this->temperature = temperature;
+	this->net_radiation = net_radiation;
+	this->soil_heat_flux = soil_heat_flux;
+	this->ho = ho;
+	this->line = line;
+	this->col = col;
+	this->negative_neighbour = 0;
+	this->coefficient_variation = 0;
+	this->zom = 0;
+	this->ustar = 0;
+	this->aerodynamic_resistance_past = 0;
+	this->aerodynamic_resistance_actual = 0;
+}*/
 
 /**
  * @brief  Constructor with initialization values to attributes.
@@ -27,7 +45,7 @@ Candidate::Candidate(){
  * @param  line: Pixel's line on TIFF.
  * @param  col: Pixel's column on TIFF.
  */
-Candidate::Candidate(double ndvi, double temperature, double net_radiation, double soil_heat_flux, double ho, int line, int col){
+CUDA_HOSTDEV Candidate::Candidate(double ndvi, double temperature, double net_radiation, double soil_heat_flux, double ho, int line, int col){
     this->ndvi = ndvi;
     this->temperature = temperature;
     this->net_radiation = net_radiation;
@@ -39,6 +57,8 @@ Candidate::Candidate(double ndvi, double temperature, double net_radiation, doub
     this->coefficient_variation = 0;
     this->zom = 0;
     this->ustar = 0;
+    this->aerodynamic_resistance_past = 0;
+    this->aerodynamic_resistance_actual = 0;
 }
 
 /**
@@ -51,7 +71,19 @@ Candidate::Candidate(double ndvi, double temperature, double net_radiation, doub
 void Candidate::setAerodynamicResistance(double u200, double A_ZOM, double B_ZOM, double VON_KARMAN){
     this->zom = exp(A_ZOM + B_ZOM * this->ndvi);
     this->ustar = (VON_KARMAN * u200)/log(200/this->zom);
-    this->aerodynamic_resistance.push_back(log(20)/(this->ustar * VON_KARMAN));
+    this->aerodynamic_resistance_actual = log(20)/(this->ustar * VON_KARMAN);
+    this->aerodynamic_resistance_past = 0;
+}
+
+/**
+ * @brief  Update Pixel's aerodynamic resistance for a new value.
+ * @param  newRah: new value of aerodynamic resistance.
+ */
+void Candidate::setAerodynamicResistance(double newRah){
+
+	this->aerodynamic_resistance_past = this->aerodynamic_resistance_actual;
+	this->aerodynamic_resistance_actual = newRah;
+
 }
 
 /**
@@ -145,13 +177,7 @@ void Candidate::toString(){
     printf("Coefficient variation: %.10lf\n", this->coefficient_variation);
     printf("Line: %d", this->line);
     printf("Col: %d", this->col);
-
-    if(this->aerodynamic_resistance.size() > 0){
-        printf("Aerodynamic resistance:\n");
-        for(unsigned i = 0; i < this->aerodynamic_resistance.size(); i++){
-            printf("Aerodynamic resistance[%i]: %.10f\n", i, this->aerodynamic_resistance[i]);
-        }
-    }
+    printf("Aerodynamic resistance: %.10f\n", this->aerodynamic_resistance_actual);
 
     printf("\n");
 }

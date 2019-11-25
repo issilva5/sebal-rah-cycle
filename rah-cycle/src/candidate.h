@@ -2,6 +2,12 @@
 
 #include "utils.h"
 
+#ifdef __CUDACC__
+#define CUDA_HOSTDEV __host__ __device__
+#else
+#define CUDA_HOSTDEV
+#endif
+
 /**
  * @brief  Struct representing a hot or cold pixel candidate.
  */
@@ -11,13 +17,12 @@ struct Candidate{
 	int line, col;
 	int negative_neighbour;
 	double coefficient_variation;
-
-	std::vector< double > aerodynamic_resistance;
+	double aerodynamic_resistance_past, aerodynamic_resistance_actual;
 
 	/**
 	 * @brief  Empty constructor, all attributes are initialized with 0.
 	 */
-	Candidate();
+	CUDA_HOSTDEV Candidate();
 
 	/**
 	 * @brief  Constructor with initialization values to attributes.
@@ -29,7 +34,7 @@ struct Candidate{
 	 * @param  line: Pixel's line on TIFF.
 	 * @param  col: Pixel's column on TIFF.
 	 */
-	Candidate(double ndvi, double temperature, double net_radiation, double soil_heat_flux, double ho, int line, int col);
+	CUDA_HOSTDEV Candidate(double ndvi, double temperature, double net_radiation, double soil_heat_flux, double ho, int line, int col);
 
 	/**
 	 * @brief  Calculates a initial value for Pixel's aerodynamic resistance. Adding this value to attribute aerodynamic resistance.
@@ -39,6 +44,12 @@ struct Candidate{
 	 * @param  VON_KARMAN: Karman's constant.
 	 */
 	void setAerodynamicResistance(double u200, double A_ZOM, double B_ZOM, double VON_KARMAN);
+
+	/**
+	 * @brief  Update Pixel's aerodynamic resistance for a new value.
+	 * @param  newRah: new value of aerodynamic resistance.
+	 */
+	void setAerodynamicResistance(double newRah);
 
 	/**
 	 * @brief  Counts how many neighbors pixels of the Candidate pixel have a negative value of NDVI.

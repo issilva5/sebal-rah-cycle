@@ -60,16 +60,27 @@ int main(int argc, char *argv[]) {
 	}
 
 	int threadNum = argc == 14 ? atoi(argv[13]) : 256;
-	printf("THREAD NUM: %d", threadNum);
+	//printf("THREAD NUM: %d", threadNum);
+
+	//Timing
+	std::chrono::steady_clock::time_point begin, end;
+	std::chrono::duration< double, std::micro > time_span_us;
 
 	Landsat landsat = Landsat(tal_path, output_path, threadNum);
-	printf("PHASE 1 - START, %d\n", int(time(NULL)));
+	//printf("PHASE 1 - START, %d\n", int(time(NULL)));
+	begin = std::chrono::steady_clock::now();
 	landsat.process_partial_products(bands_resampled, mtl, station, sensor);
-	printf("PHASE 1 - END, %d\n", int(time(NULL)));
-	printf("PHASE 2 - START, %d\n", int(time(NULL)));
+	end = std::chrono::steady_clock::now();
+	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
+	printf("PHASE 1 - DURATION, %.5f\n", time_span_us);
+
+	begin = std::chrono::steady_clock::now();
+	//printf("PHASE 2 - START, %d\n", int(time(NULL)));
 	landsat.process_final_products(station, mtl);
 	close_tiffs(bands_resampled, 8);
-	printf("PHASE 2 - END, %d\n", int(time(NULL)));
+	end = std::chrono::steady_clock::now();
+	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
+	printf("PHASE 2 - DURATION, %.5f\n", time_span_us);
 	return 0;
 
 }
