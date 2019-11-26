@@ -5,6 +5,7 @@
 #include "parameters.h"
 #include "pixel_reader.h"
 #include "candidate.h"
+#include "filter.cuh"
 
 /**
  * @brief  The spectral radiance for each band is computed.
