@@ -382,8 +382,10 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
 	int valid = 0;
-	const int MAXC = 2*width_band;
-	Candidate pre_candidates[MAXC];
+	const int MAXC = 5000000;
+	Candidate* pre_candidates;
+	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
+	if(pre_candidates == NULL) exit(1);
 
 	//Device variables
 	double *ndvi_dev, *ts_dev, *rn_dev, *soil_heat_dev, *ho_dev;
@@ -402,6 +404,10 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	//std::vector<Candidate> pre_candidates;
 	begin = std::chrono::steady_clock::now();
 	    //printf("PHASE 2 - PSH NDVI FILTER BEGIN, %d\n", int(time(NULL)));
+
+	HANDLE_ERROR(cudaMemcpy(pre_candidates_dev, pre_candidates, MAXC*sizeof(Candidate), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(valid_dev, &valid, sizeof(int), cudaMemcpyHostToDevice));
+
 	for (int line = 0; line < height_band; line++) {
 		read_line_tiff(*net_radiation, net_radiation_line, line);
 		read_line_tiff(*soil_heat, soil_heat_line, line);
@@ -411,20 +417,19 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 		read_line_tiff(*ndvi, ndvi_line, line);
 		read_line_tiff(*surface_temperature, surface_temperature_line, line);
 
-		HANDLE_ERROR(cudaMemcpy(pre_candidates_dev, pre_candidates, MAXC*sizeof(Candidate), cudaMemcpyHostToDevice));
+
 		HANDLE_ERROR(cudaMemcpy(ndvi_dev, ndvi_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 		HANDLE_ERROR(cudaMemcpy(ts_dev, surface_temperature_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 		HANDLE_ERROR(cudaMemcpy(rn_dev, net_radiation_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 		HANDLE_ERROR(cudaMemcpy(soil_heat_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(valid_dev, &valid, sizeof(int), cudaMemcpyHostToDevice));
 
 		filter<<<1024, 256>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
 
-		HANDLE_ERROR(cudaMemcpy(&valid, valid_dev, sizeof(int), cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaMemcpy(pre_candidates, pre_candidates_dev, MAXC * sizeof(Candidate), cudaMemcpyDeviceToHost));
-
 	}
+
+	HANDLE_ERROR(cudaMemcpy(&valid, valid_dev, sizeof(int), cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(pre_candidates, pre_candidates_dev, MAXC * sizeof(Candidate), cudaMemcpyDeviceToHost));
 
 	HANDLE_ERROR(cudaFree(pre_candidates_dev));
 	HANDLE_ERROR(cudaFree(ndvi_dev));
@@ -437,6 +442,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSH NDVI FILTER DURATION, %.5f\n", time_span_us);
+	printf("VALID: %d\n", valid);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH SORT BY TEMP BEGIN, %d\n", int(time(NULL)));
@@ -453,12 +459,14 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	//Select only the ones with temperature equals the surface temperature of the hot pixel
 	std::vector<double> ho_candidates;
 	Candidate lastHOCandidate;
-	for (Candidate c : pre_candidates) {
-		if (essentiallyEqual(c.temperature, surfaceTempHot)) {
-			ho_candidates.push_back(c.ho);
-			lastHOCandidate = c;
+	for (int i = 0; i < valid; i++) {
+		if (essentiallyEqual(pre_candidates[i].temperature, surfaceTempHot)) {
+			ho_candidates.push_back(pre_candidates[i].ho);
+			lastHOCandidate = pre_candidates[i];
 		}
 	}
+
+	free(pre_candidates);
 
 	if (ho_candidates.size() == 1) {
 		return lastHOCandidate;
@@ -501,6 +509,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSH SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
+	printf("CANDIDATOS FINAIS: %d", final_candidates.size());
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH CV EXTRACT BEGIN, %d\n", int(time(NULL)));
