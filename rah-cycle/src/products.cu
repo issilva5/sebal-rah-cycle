@@ -424,7 +424,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 		HANDLE_ERROR(cudaMemcpy(soil_heat_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 
-		filter<<<1024, 256>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
+		filterHot<<<1024, 256>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
 
 	}
 
@@ -442,7 +442,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSH NDVI FILTER DURATION, %.5f\n", time_span_us);
-	printf("VALID: %d\n", valid);
+	//printf("VALID: %d\n", valid);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH SORT BY TEMP BEGIN, %d\n", int(time(NULL)));
@@ -559,10 +559,32 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	double ndvi_line[width_band], surface_temperature_line[width_band];
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
+	int valid = 0;
+	const int MAXC = 5000000;
+	Candidate* pre_candidates;
+	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
+	if(pre_candidates == NULL) exit(1);
+
+	//Device variables
+	double *ndvi_dev, *ts_dev, *rn_dev, *soil_heat_dev, *ho_dev;
+	int *valid_dev;
+	Candidate* pre_candidates_dev;
+
+	HANDLE_ERROR(cudaMalloc((void**) &pre_candidates_dev, MAXC * sizeof(Candidate)));
+	HANDLE_ERROR(cudaMalloc((void**) &ndvi_dev, width_band * sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**) &ts_dev, width_band * sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**) &rn_dev, width_band * sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**) &soil_heat_dev, width_band * sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**) &ho_dev, width_band * sizeof(double)));
+	HANDLE_ERROR(cudaMalloc((void**) &valid_dev, sizeof(int)));
 
 	//Contains the candidates with NDVI less than 0, which surface temperature is greater than 273.16
-	std::vector<Candidate> pre_candidates;
+	//std::vector<Candidate> pre_candidates;
 	begin = std::chrono::steady_clock::now();
+
+	HANDLE_ERROR(cudaMemcpy(pre_candidates_dev, pre_candidates, MAXC*sizeof(Candidate), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(valid_dev, &valid, sizeof(int), cudaMemcpyHostToDevice));
+
 	    //printf("PHASE 2 - PSC NDVI FILTER BEGIN, %d\n", int(time(NULL)));
 	for (int line = 0; line < height_band; line++) {
 
@@ -574,16 +596,27 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 		read_line_tiff(*ndvi, ndvi_line, line);
 		read_line_tiff(*surface_temperature, surface_temperature_line, line);
 
-		for (int col = 0; col < width_band; col++) {
-			if (!std::isnan(ndvi_line[col]) && !std::isnan(ho_line[col]) && definitelyLessThan(ndvi_line[col], 0)
-					&& definitelyGreaterThan(surface_temperature_line[col], 273.16)) {
-				pre_candidates.push_back(
-						Candidate(ndvi_line[col], surface_temperature_line[col], net_radiation_line[col], soil_heat_line[col], ho_line[col],
-								line, col));
-			}
-		}
+		HANDLE_ERROR(cudaMemcpy(ndvi_dev, ndvi_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(ts_dev, surface_temperature_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(rn_dev, net_radiation_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(soil_heat_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+
+		filterCold<<<1024, 256>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
 
 	}
+
+	HANDLE_ERROR(cudaMemcpy(&valid, valid_dev, sizeof(int), cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(pre_candidates, pre_candidates_dev, MAXC * sizeof(Candidate), cudaMemcpyDeviceToHost));
+
+	HANDLE_ERROR(cudaFree(pre_candidates_dev));
+	HANDLE_ERROR(cudaFree(ndvi_dev));
+	HANDLE_ERROR(cudaFree(ts_dev));
+	HANDLE_ERROR(cudaFree(rn_dev));
+	HANDLE_ERROR(cudaFree(soil_heat_dev));
+	HANDLE_ERROR(cudaFree(ho_dev));
+	HANDLE_ERROR(cudaFree(valid_dev));
+
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSC NDVI FILTER DURATION, %.5f\n", time_span_us);
@@ -591,11 +624,11 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSC SORT BY TEMP BEGIN, %d\n", int(time(NULL)));
 	//Sort the candidates by their temperatures and choose the surface temperature of the hot pixel
-	sort(pre_candidates.begin(), pre_candidates.end(), compare_candidate_temperature);
+	std::sort(pre_candidates, pre_candidates + valid, compare_candidate_temperature);
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSC SORT BY TEMP DURATION, %.5f\n", time_span_us);
-	int pos = floor(0.5 * pre_candidates.size());
+	int pos = floor(0.5 * valid);
 	double surfaceTempCold = pre_candidates[pos].temperature;
 
 	begin = std::chrono::steady_clock::now();
@@ -603,12 +636,14 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	//Select only the ones with temperature equals the surface temperature of the Cold pixel
 	std::vector<double> ho_candidates;
 	Candidate lastHOCandidate;
-	for (Candidate c : pre_candidates) {
-		if (essentiallyEqual(c.temperature, surfaceTempCold)) {
-			ho_candidates.push_back(c.ho);
-			lastHOCandidate = c;
+	for (int i = 0; i < valid; i++) {
+		if (essentiallyEqual(pre_candidates[i].temperature, surfaceTempCold)) {
+			ho_candidates.push_back(pre_candidates[i].ho);
+			lastHOCandidate = pre_candidates[i];
 		}
 	}
+
+	free(pre_candidates);
 
 	if (ho_candidates.size() == 1) {
 		return lastHOCandidate;
