@@ -442,7 +442,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSH NDVI FILTER DURATION, %.5f\n", time_span_us);
-	printf("VALID: %d\n", valid);
+	//printf("VALID: %d\n", valid);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH SORT BY TEMP BEGIN, %d\n", int(time(NULL)));
