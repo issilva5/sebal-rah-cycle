@@ -27,4 +27,3 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 			result);													\
 		exit(1);														\
 	} }
-

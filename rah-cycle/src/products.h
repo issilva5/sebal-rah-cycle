@@ -174,7 +174,7 @@ void ho_function(double net_radiation_line[], double soil_heat_flux[], int width
  * @param  width_band: Band width.
  * @retval Candidate struct containing the hot pixel.
  */
-Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_radiation, TIFF** soil_heat, int height_band, int width_band);
+Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_radiation, TIFF** soil_heat, int height_band, int width_band, int threadNum);
 
 /**
  * @brief  Select the cold pixel.
@@ -186,7 +186,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
  * @param  width_band: Band width.
  * @retval Candidate struct containing the cold pixel.
  */
-Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_radiation, TIFF** soil_heat, int height_band, int width_band);
+Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_radiation, TIFF** soil_heat, int height_band, int width_band, int threadNum);
 
 /**
  * @brief  Computes the momentum roughness length (zom).

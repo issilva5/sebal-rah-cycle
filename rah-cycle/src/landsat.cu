@@ -134,8 +134,8 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	// Selecting hot and cold pixels
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PIXEL SELECTION, %d\n", int(time(NULL)));
-	Candidate hot_pixel = select_hot_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band);
-	Candidate cold_pixel = select_cold_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band);
+	Candidate hot_pixel = select_hot_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
+	Candidate cold_pixel = select_cold_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PIXEL SELECTION DURATION, %.5f\n", time_span_us);
@@ -364,8 +364,7 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 
 			/********** KERNEL BEGIN **********/
 			//cudaEventRecord(start, 0);
-
-			correctionCycle<<<(width_band + this->threadNum - 1) / this->threadNum, this->threadNum >>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200, devSize);
+			correctionCycle<<<(width_band + this->threadNum - 1) / this->threadNum, this->threadNum>>>(devTS, devZom, devUstarR, devUstarW, devRahR, devRahW, devA, devB, devU200, devSize);
 			cudaDeviceSynchronize();
 
 			/********** KERNEL END **********/

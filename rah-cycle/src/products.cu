@@ -371,7 +371,7 @@ void ho_function(double net_radiation_line[], double soil_heat_flux[], int width
  * @retval Candidate struct containing the hot pixel.
  */
 Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_radiation, TIFF** soil_heat, int height_band,
-		int width_band) {
+		int width_band, int threadNum) {
 
     //Timing
     std::chrono::steady_clock::time_point begin, end;
@@ -424,7 +424,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 		HANDLE_ERROR(cudaMemcpy(soil_heat_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 
-		filterHot<<<1024, 256>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
+		filterHot<<<(width_band + threadNum - 1) / threadNum, threadNum>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
 
 	}
 
@@ -442,7 +442,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSH NDVI FILTER DURATION, %.5f\n", time_span_us);
-	//printf("VALID: %d\n", valid);
+	printf("VALID: %d\n", valid);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH SORT BY TEMP BEGIN, %d\n", int(time(NULL)));
@@ -486,6 +486,18 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	//Contains the final candidates which HO is in (HO_min, HO_max) and surface temperature is greater than 273.16
 	std::vector<Candidate> final_candidates;
 
+//	Candidate* final_candidates;
+//	final_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
+//
+//	Candidate* final_candidates_dev;
+//	valid = 0;
+//	double* ho_max_dev, *ho_min_dev, *surf_temp_dev;
+//
+//	HANDLE_ERROR(cudaMalloc((void**) &final_candidates_dev, 100 * sizeof(Candidate)));
+//
+//	HANDLE_ERROR(cudaMemcpy(final_candidates_dev, final_candidates, 100 * sizeof(Candidate), cudaMemcpyHostToDevice));
+//	HANDLE_ERROR(cudaMemcpy(valid_dev, &valid, sizeof(int), cudaMemcpyHostToDevice));
+
 	for (int line = 0; line < height_band; line++) {
 
 		read_line_tiff(*net_radiation, net_radiation_line, line);
@@ -505,10 +517,31 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 			}
 		}
 
+//		HANDLE_ERROR(cudaMemcpy(ndvi_dev, ndvi_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+//		HANDLE_ERROR(cudaMemcpy(ts_dev, surface_temperature_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+//		HANDLE_ERROR(cudaMemcpy(rn_dev, net_radiation_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+//		HANDLE_ERROR(cudaMemcpy(soil_heat_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+//		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+//
+//		finalFilterHot<<<(width_band + threadNum - 1) / threadNum, threadNum>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, HO_max, HO_min, surfaceTempHot, line, width_band);
+
 	}
+
+//	HANDLE_ERROR(cudaMemcpy(&valid, valid_dev, sizeof(int), cudaMemcpyDeviceToHost));
+//	HANDLE_ERROR(cudaMemcpy(final_candidates, final_candidates_dev, 100 * sizeof(Candidate), cudaMemcpyDeviceToHost));
+//
+//	HANDLE_ERROR(cudaFree(final_candidates_dev));
+//	HANDLE_ERROR(cudaFree(ndvi_dev));
+//	HANDLE_ERROR(cudaFree(ts_dev));
+//	HANDLE_ERROR(cudaFree(rn_dev));
+//	HANDLE_ERROR(cudaFree(soil_heat_dev));
+//	HANDLE_ERROR(cudaFree(ho_dev));
+//	HANDLE_ERROR(cudaFree(valid_dev));
+
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	printf("PHASE 2 - PSH SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
+	//printf("VALID: %d\n", valid);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH CV EXTRACT BEGIN, %d\n", int(time(NULL)));
@@ -548,7 +581,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
  * @retval Candidate struct containing the cold pixel.
  */
 Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_radiation, TIFF** soil_heat, int height_band,
-		int width_band) {
+		int width_band, int threadNum) {
 
     //Timing
     std::chrono::steady_clock::time_point begin, end;
@@ -601,7 +634,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 		HANDLE_ERROR(cudaMemcpy(soil_heat_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 
-		filterCold<<<1024, 256>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
+		filterCold<<<(width_band + threadNum - 1) / threadNum, threadNum>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, line, width_band);
 
 	}
 
