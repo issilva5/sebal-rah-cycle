@@ -12,6 +12,11 @@ __global__ void finalFilterHot(Candidate* dst, double* ndvi, double* ts, double*
 __global__ void filterCold(Candidate* dst, double* ndvi, double* ts, double* net_radiation,
 					   double* soil_heat, double* ho, int* nvalid,  int line, int size);
 
+__global__ void asebalFilterCold(Candidate* dst, double* ndvi, double* ts, double* albedo, double* net_radiation, double* soil_heat, double* ho,
+		int* nvalid, double* albedoQuartile, double* ndviQuartile, double* tsQuartile, int line, int size);
+
+__global__ void asebalFilterHot(Candidate* dst, double* ndvi, double* ts, double* albedo, double* net_radiation, double* soil_heat, double* ho,
+		int* nvalid, double* albedoQuartile, double* ndviQuartile, double* tsQuartile, int line, int size);
 
 /**
  * @brief  Determines if a and b are approximately equals based on a epsilon.

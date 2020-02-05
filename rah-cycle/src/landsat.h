@@ -1,6 +1,7 @@
 #pragma once
 
 #include "products.h"
+#include "asebal.h"
 
 /**
  * @brief  Struct to manage the products calculation.
