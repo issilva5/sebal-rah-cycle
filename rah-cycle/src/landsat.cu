@@ -14,10 +14,11 @@ Landsat::Landsat() {
  * @param  tal_path: Path to tal TIFF.
  * @param  output_path: Output path where TIFF should be saved.
  */
-Landsat::Landsat(std::string tal_path, std::string output_path,  int threadNum) {
+Landsat::Landsat(std::string tal_path, std::string output_path, double noData, int threadNum) {
 	this->tal_path = tal_path;
 	this->output_path = output_path;
 	this->threadNum = threadNum;
+	this->noData = noData;
 
 	//Initialize the path of products TIFF based on the output path.
 	this->albedo_path = output_path + "/alb.tif";
@@ -76,8 +77,8 @@ void Landsat::process_partial_products(TIFF* read_bands[], MTL mtl, Station stat
 
 	//Calculating the partial products for each line
 	for (int line = 0; line < height_band; line++) {
-		radiance_function(read_bands, mtl, sensor, width_band, line, radiance_line);
-		reflectance_function(read_bands, mtl, sensor, radiance_line, width_band, line, reflectance_line);
+		radiance_function(read_bands, mtl, sensor, width_band, line, radiance_line, this->noData);
+		reflectance_function(read_bands, mtl, sensor, radiance_line, width_band, line, reflectance_line, this->noData);
 
 		read_line_tiff(tal, tal_line, line);
 

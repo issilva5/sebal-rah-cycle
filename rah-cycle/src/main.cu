@@ -44,10 +44,11 @@ int main(int argc, char *argv[]) {
 
 	Sensor sensor = Sensor(mtl.number_sensor, mtl.year);
 
-	if (argc >= 13) {
-		std::string dist_flag = argv[12];
-		if (dist_flag.substr(0, 6) == "-dist=")
-			mtl.distance_earth_sun = atof(dist_flag.substr(6, dist_flag.size()).c_str());
+	double noData;
+	if(argc >= 13){
+		std::string noData_flag = argv[12];
+		if(noData_flag.substr(0,5) == "-nan=")
+			noData = atof(noData_flag.substr(5, noData_flag.size()).c_str());
 	}
 
 	std::string tal_path = argv[9];
@@ -66,7 +67,7 @@ int main(int argc, char *argv[]) {
 	std::chrono::steady_clock::time_point begin, end;
 	std::chrono::duration< double, std::micro > time_span_us;
 
-	Landsat landsat = Landsat(tal_path, output_path, threadNum);
+	Landsat landsat = Landsat(tal_path, output_path, noData, threadNum);
 	//printf("PHASE 1 - START, %d\n", int(time(NULL)));
 	begin = std::chrono::steady_clock::now();
 	landsat.process_partial_products(bands_resampled, mtl, station, sensor);
