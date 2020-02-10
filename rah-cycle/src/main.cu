@@ -44,9 +44,19 @@ int main(int argc, char *argv[]) {
 
 	Sensor sensor = Sensor(mtl.number_sensor, mtl.year);
 
-	double noData;
-	if(argc >= 13){
-		std::string noData_flag = argv[12];
+	std::string landCoverPath = (argc >= 13) ? argv[12] : "";
+	printf("PATH: %s\n", landCoverPath.c_str());
+
+	int method = 0;
+	if(argc >= 14){
+		std::string flag = argv[13];
+		if(flag.substr(0, 6) == "-meth=")
+			method = flag[6] - '0';
+	}
+
+	double noData = NaN;
+	if(argc >= 15){
+		std::string noData_flag = argv[14];
 		if(noData_flag.substr(0,5) == "-nan=")
 			noData = atof(noData_flag.substr(5, noData_flag.size()).c_str());
 	}
@@ -60,14 +70,14 @@ int main(int argc, char *argv[]) {
 		check_open_tiff(bands_resampled[i]);
 	}
 
-	int threadNum = argc == 14 ? atoi(argv[13]) : 256;
+	int threadNum = argc == 16 ? atoi(argv[15]) : 256;
 	//printf("THREAD NUM: %d", threadNum);
 
 	//Timing
 	std::chrono::steady_clock::time_point begin, end;
 	std::chrono::duration< double, std::micro > time_span_us;
 
-	Landsat landsat = Landsat(tal_path, output_path, noData, threadNum);
+	Landsat landsat = Landsat(tal_path, output_path, method, noData, landCoverPath, threadNum);
 	//printf("PHASE 1 - START, %d\n", int(time(NULL)));
 	begin = std::chrono::steady_clock::now();
 	landsat.process_partial_products(bands_resampled, mtl, station, sensor);

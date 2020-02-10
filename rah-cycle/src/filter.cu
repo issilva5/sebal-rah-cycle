@@ -101,6 +101,175 @@ __global__ void asebalFilterHot(Candidate* dst, double* ndvi, double* ts, double
 
 }
 
+//ESA SEBAL
+
+__device__ bool checkLandCode(int value){
+
+    return (value == AGP) || (value == PAS) || (value == AGR) || (value == CAP) || (value == CSP) || (value == MAP);
+
+}
+
+__global__ void landCoverHomogeneityKernel(double* inputBuffer, int* output, int line, int numCol, int numLine){
+
+	int column = threadIdx.x + blockIdx.x * blockDim.x;
+	double pixel_value;
+	int aux;
+
+	while (column < numCol) {
+
+		aux = line % 7;
+
+		pixel_value = inputBuffer[aux * numCol + column];
+
+		output[column] = false;
+
+		if(checkLandCode(pixel_value)) { //Verify if the pixel is an AGR pixel
+
+			output[column] = true;
+
+			for(int i = -3; i <= 3 && output[column]; i++){
+
+				for(int j = -3; j <= 3 && output[column]; j++){
+
+					// Check if the neighbor is AGR too
+
+					if (column + i >= 0 && column + i < numCol && line + j >= 0 && line + j < numLine) {
+
+						aux = (line + j) % 7;
+
+						pixel_value = inputBuffer[aux * numCol + column + i];
+
+						if(!isnan(pixel_value))
+							if(!checkLandCode(pixel_value))
+								output[column] = false;
+
+					}
+
+				}
+
+			}
+
+		}
+
+		column += blockDim.x * gridDim.x;
+
+	}
+
+}
+
+__global__ void testHomogeneityKernel(double* ndviBuffer, double* tsBuffer, double* albedoBuffer, int* lcBuffer, int* output, int line, int numCol, int numLine){
+
+    int column = threadIdx.x + blockIdx.x * blockDim.x;
+    double pixel_value;
+    int aux;
+
+    int ndvi_size, ts_size, albedo_size;
+
+	while(column < numCol) {
+
+		double ndvi_neighbors[60], ts_neighbors[60], albedo_neighbors[60];
+
+		aux = line % 7;
+		ndvi_size = 0;
+		ts_size = 0;
+		albedo_size = 0;
+
+		if(lcBuffer[column] == true) { //Verify if the pixel passed the land cover test
+
+			if(!isnan(ndviBuffer[aux * numCol + column])){
+
+				for(int i = -3; i <= 3; i++){
+
+					for(int j = -3; j <= 3; j++){
+
+						// Add for the NDVI, TS and Albedo the value of neighbors pixels into the respective vector
+
+						if (column + i >= 0 && column + i < numCol && line + j >= 0 && line + j < numLine) {
+
+							aux = (line + j) % 7;
+
+							pixel_value = ndviBuffer[aux * numCol + column + i];
+							if(!isnan(pixel_value)) {
+								ndvi_neighbors[ndvi_size] = pixel_value;
+								ndvi_size++;
+							}
+
+							pixel_value = tsBuffer[aux * numCol + column + i];
+							if(!isnan(pixel_value)) {
+								ts_neighbors[ts_size] = pixel_value;
+								ts_size++;
+							}
+
+							pixel_value = albedoBuffer[aux * numCol + column + i];
+							if(!isnan(pixel_value)) {
+								albedo_neighbors[albedo_size] = pixel_value;
+								albedo_size++;
+							}
+
+						}
+
+					}
+
+				}
+
+				// Do the calculation of the dispersion measures from the NDVI, TS and Albedo
+
+				double meanNDVI, meanTS, meanAlb;
+				double sdNDVI, sdTS, sdAlb;
+				double cvNDVI, cvAlb;
+				double sumNDVI = 0, sumTS = 0, sumAlb = 0;
+
+				for(int i = 0; i < ndvi_size; i++) {
+
+					sumNDVI += ndvi_neighbors[i];
+					sumTS += ts_neighbors[i];
+					sumAlb += albedo_neighbors[i];
+
+				}
+
+				meanNDVI = sumNDVI / ndvi_size;
+				meanTS = sumTS / ts_size;
+				meanAlb = sumAlb / albedo_size;
+
+				sumNDVI = 0, sumTS = 0, sumAlb = 0;
+
+				for(int i = 0; i < ndvi_size; i++) {
+
+					sumNDVI += (ndvi_neighbors[i] - meanNDVI) * (ndvi_neighbors[i] - meanNDVI);
+					sumTS += (ts_neighbors[i] - meanTS) * (ts_neighbors[i] - meanTS);
+					sumAlb += (albedo_neighbors[i] - meanAlb) * (albedo_neighbors[i] - meanAlb);
+
+				}
+
+				sdNDVI = sqrt(sumNDVI / ndvi_size);
+				sdTS = sqrt(sumTS / ts_size);
+				sdAlb = sqrt(sumAlb / albedo_size);
+
+				cvNDVI = sdNDVI / meanNDVI;
+				cvAlb = sdAlb / meanAlb;
+
+
+				// Check if the pixel is eligible
+				output[column] = (cvNDVI < 0.25) && (cvAlb < 0.25) && (sdTS < 1.5);
+
+			} else {
+
+				output[column] = false;
+
+			}
+
+		} else {
+
+			output[column] = false;
+
+		}
+
+		column += blockDim.x * gridDim.x;
+
+	}
+
+}
+
 /**
  * @brief  Determines if a and b are approximately equals based on a epsilon.
  * @param  a: First value.

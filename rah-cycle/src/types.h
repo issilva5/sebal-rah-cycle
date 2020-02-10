@@ -20,10 +20,11 @@
 #include <map>
 #include <vector>
 #include <algorithm>
-#include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 #include <chrono>
+#include <stdlib.h>
+#include <queue>
+#include <set>
 
 // CONSTANTS DECLARATION
 
@@ -51,7 +52,8 @@ const double SPECIFIC_HEAT_AIR = 1004;
 // Solar constant
 const double GSC = 0.082;
 
-
-
+// Agricultural field land cover value
+// Available at https://mapbiomas.org/downloads_codigos
+const int AGP = 14, PAS = 15, AGR = 18, CAP = 19, CSP = 20, MAP = 21;
 
 #endif /* TYPES_H_ */

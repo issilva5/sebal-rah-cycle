@@ -73,6 +73,8 @@ struct Candidate{
 	void toString();
 };
 
+bool equals(Candidate a, Candidate b);
+
 /**
  * @brief  Compares two Candidates based upon their surface temperature.
  * @param  a: First candidate.
@@ -80,6 +82,14 @@ struct Candidate{
  * @retval TRUE if second candidate is greater than first one, and FALSE otherwise.
  */
 bool compare_candidate_temperature(Candidate a, Candidate b);
+
+/**
+ * @brief  Compares two Candidates based upon their surface temperature.
+ * @param  a: First candidate.
+ * @param  b: Second candidate.
+ * @retval TRUE if second candidate is greater than first one, and FALSE otherwise.
+ */
+bool compare_candidate_ndvi(Candidate a, Candidate b);
 
 /**
  * @brief  Compares two Candidates based upon their HO.

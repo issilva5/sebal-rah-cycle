@@ -2,6 +2,7 @@
 
 #include "products.h"
 #include "asebal.h"
+#include "esaSebal.h"
 
 /**
  * @brief  Struct to manage the products calculation.
@@ -19,6 +20,8 @@ struct Landsat{
     std::string ustar_tif0_path, ustar_tif1_path, aerodynamic_resistance_tif0_path, aerodynamic_resistance_tif1_path;
     std::string latent_heat_flux_path, net_radiation_24h_path, latent_heat_flux_24h_path;
     int threadNum;
+    int method;
+    std::string landCoverPath;
     double noData;
 
     /**
@@ -31,7 +34,7 @@ struct Landsat{
      * @param  tal_path: Path to tal TIFF.
      * @param  output_path: Output path where TIFF should be saved.
      */
-    Landsat(std::string tal_path, std::string output_path, double noData, int threadNum);
+    Landsat(std::string tal_path, std::string output_path, int method, double noData,std::string landCoverPath,  int threadNum);
 
 	/**
 	 * @brief  Calculates the partials products (e. g. Albedo, NDVI, Rn, G) of the SEBAL execution.

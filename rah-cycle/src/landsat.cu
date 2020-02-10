@@ -6,6 +6,8 @@
  */
 Landsat::Landsat() {
 	this->threadNum = 1;
+	this->method = 0;
+	this->noData = NaN;
 }
 ;
 
@@ -14,11 +16,13 @@ Landsat::Landsat() {
  * @param  tal_path: Path to tal TIFF.
  * @param  output_path: Output path where TIFF should be saved.
  */
-Landsat::Landsat(std::string tal_path, std::string output_path, double noData, int threadNum) {
+Landsat::Landsat(std::string tal_path, std::string output_path, int method, double noData, std::string landCoverPath, int threadNum) {
 	this->tal_path = tal_path;
 	this->output_path = output_path;
 	this->threadNum = threadNum;
+	this->landCoverPath = landCoverPath;
 	this->noData = noData;
+	this->method = method;
 
 	//Initialize the path of products TIFF based on the output path.
 	this->albedo_path = output_path + "/alb.tif";
@@ -36,6 +40,7 @@ Landsat::Landsat(std::string tal_path, std::string output_path, double noData, i
 	this->ustar_tif1_path = output_path + "/ustar_tif1.tif";
 	this->aerodynamic_resistance_tif0_path = output_path + "/Rah_tif0.tif";
 	this->aerodynamic_resistance_tif1_path = output_path + "/Rah_tif1.tif";
+
 }
 ;
 
@@ -135,11 +140,20 @@ void Landsat::process_final_products(Station station, MTL mtl) {
 	// Selecting hot and cold pixels
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PIXEL SELECTION, %d\n", int(time(NULL)));
-	//Candidate hot_pixel = select_hot_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
-	//Candidate cold_pixel = select_cold_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
+	Candidate hot_pixel, cold_pixel;
 
-	Candidate hot_pixel = getHotPixel(&ndvi, &surface_temperature, &albedo, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
-	Candidate cold_pixel = getColdPixel(&ndvi, &surface_temperature, &albedo, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
+	if (this->method == 0) { //Our SEBAL
+		hot_pixel = select_hot_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
+		cold_pixel = select_cold_pixel(&ndvi, &surface_temperature, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
+	} else if (this->method == 1) { //ASEBAL
+		hot_pixel = getHotPixel(&ndvi, &surface_temperature, &albedo, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
+		cold_pixel = getColdPixel(&ndvi, &surface_temperature, &albedo, &net_radiation, &soil_heat, height_band, width_band, this->threadNum);
+	} else if (this->method == 2) { //ESA SEBAL
+		TIFF* land_cover = TIFFOpen(this->landCoverPath.c_str(), "r");
+		std::pair<Candidate, Candidate> pixels = esaPixelSelect(&ndvi, &surface_temperature, &albedo, &net_radiation, &soil_heat, &land_cover, height_band, width_band, this->output_path, this->threadNum);
+
+		hot_pixel = pixels.first, cold_pixel = pixels.second;
+	}
 
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);

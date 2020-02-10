@@ -9,6 +9,17 @@
  */
 void setup(TIFF* new_tif, TIFF* base_tif);
 
+
+/**
+ * @brief  Configures a TIFF based user parameters.
+ * @param  new_tif: TIFF to be configured.
+ * @param  width: New TIFF width.
+ * @param  length: New TIFF length.
+ * @param  bitsPerSample: Number of bits per component. For further information, see https://www.awaresystems.be/imaging/tiff/tifftags/bitspersample.html.
+ * @param  sampleFormat: Specifies how to interpret each data sample in a pixel. For more information, check https://www.awaresystems.be/imaging/tiff/tifftags/sampleformat.html.
+ */
+void setup(TIFF* new_tif, int width, int length, int bitsPerSample, int sampleFormat);
+
 /**
  * @brief  Verifies if a TIFF was open correctly.
  * @param  tif: TIFF to be verified
@@ -24,6 +35,15 @@ void check_open_tiff(TIFF* tif);
  * @throws Throw an error with exit code 3 if the read couldn't be done.
  */
 void read_line_tiff(TIFF* tif, double tif_line[], int line);
+
+/**
+ * @brief  Reads the values of a line in a TIFF saving them into an array.
+ * @param  tif: TIFF who line should be read.
+ * @param  tif_line[]: Array where the data will be saved.
+ * @param  line: Number of the line to be read.
+ * @throws Throw an error with exit code 3 if the read couldn't be done.
+ */
+void read_line_tiff(TIFF* tif, int tif_line[], int line);
 
 /**
  * @brief  Reads the values of a line in a TIFF saving them into an array.
@@ -51,6 +71,15 @@ double read_position_tiff(TIFF* tif, int col, int line);
  * @throws Throw an error with exit code 4 if the write couldn't be done.
  */
 void write_line_tiff(TIFF* tif, double tif_line[], int line);
+
+/**
+ * @brief  Writes values from an array to a specific line in a TIFF.
+ * @param  tif: TIFF who line should be written.
+ * @param  tif_line[]: Array containing the values to be written.
+ * @param  line: Number of the line to be read.
+ * @throws Throw an error with exit code 4 if the write couldn't be done.
+ */
+void write_line_tiff(TIFF* tif, int tif_line[], int line);
 
 /**
  * @brief  Closes open TIFFs.
