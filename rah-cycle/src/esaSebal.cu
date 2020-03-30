@@ -378,6 +378,11 @@ std::pair<Candidate, Candidate> esaPixelSelect(TIFF** ndvi, TIFF** surface_tempe
 
     }
 
+    if(listTS.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no precandidates";
+		exit(15);
+	}
+
     std::vector<Candidate> listNDVI (listTS);
 
     std::sort(listTS.begin(), listTS.end(), compare_candidate_temperature);
@@ -408,6 +413,11 @@ std::pair<Candidate, Candidate> esaPixelSelect(TIFF** ndvi, TIFF** surface_tempe
 
     }
 
+    if(final_histTS.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no final TS candidates";
+		exit(15);
+	}
+
     std::vector<Candidate> histNDVI[binNDVI], final_histNDVI;
     for(Candidate c : listNDVI) {
 
@@ -426,6 +436,11 @@ std::pair<Candidate, Candidate> esaPixelSelect(TIFF** ndvi, TIFF** surface_tempe
         }
 
     }
+
+    if(final_histNDVI.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no final NDVI candidates";
+		exit(15);
+	}
 
     // Select cold pixel
     int pixel_count = 0, n1 = 1, n2 = 1, ts_pos, ndvi_pos, beginTs = 0, beginNDVI = final_histNDVI.size() - 1;
@@ -461,6 +476,11 @@ std::pair<Candidate, Candidate> esaPixelSelect(TIFF** ndvi, TIFF** surface_tempe
 
     }
 
+    if(coldPixels.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no cold candidates";
+		exit(15);
+	}
+
     //Select hot pixel
     pixel_count = 0, n1 = 1, n2 = 1;
     std::vector<Candidate> hotPixels;
@@ -495,6 +515,11 @@ std::pair<Candidate, Candidate> esaPixelSelect(TIFF** ndvi, TIFF** surface_tempe
         }
 
     }
+
+    if(hotPixels.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no hot candidates";
+		exit(15);
+	}
 
     std::sort(coldPixels.begin(), coldPixels.end(), compare_candidate_ndvi);
     std::sort(hotPixels.begin(), hotPixels.end(), compare_candidate_temperature);

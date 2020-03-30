@@ -35,7 +35,9 @@ MTL::MTL(std::string metadata_path){
         while(lineReader >> token)
             nline.push_back(token);
 
-        mtl[nline[0]] = nline[2];
+        if(nline.size() >= 3) {
+			mtl[nline[0]] = nline[2];
+		}
     }
 
     in.close();

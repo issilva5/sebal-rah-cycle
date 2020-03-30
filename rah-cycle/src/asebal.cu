@@ -157,10 +157,20 @@ Candidate getHotPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, TI
 	HANDLE_ERROR(cudaFree(ho_dev));
 	HANDLE_ERROR(cudaFree(valid_dev));
 
+	if(valid <= 0) {
+		std::cerr << "Pixel problem! - There are no precandidates";
+		exit(15);
+	}
+
     //Creating second pixel group, all values lower than the 3rd quartile are excluded
     std::sort(candidatesGroupI, candidatesGroupI + valid, compare_candidate_temperature);
     unsigned int pos = int(floor(valid * 0.75));
     std::vector<Candidate> candidatesGroupII(candidatesGroupI + pos, candidatesGroupI + valid);
+
+    if(candidatesGroupII.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no final candidates";
+		exit(15);
+	}
 
     pos = int(floor(candidatesGroupII.size() * 0.5));
     Candidate hotPixel = candidatesGroupII[pos];
@@ -169,7 +179,7 @@ Candidate getHotPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, TI
     free(tsQuartile);
     free(albedoQuartile);
 
-    hotPixel.toString();
+    //hotPixel.toString();
 
     return hotPixel;
 }
@@ -268,10 +278,20 @@ Candidate getColdPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, T
 		HANDLE_ERROR(cudaFree(ho_dev));
 		HANDLE_ERROR(cudaFree(valid_dev));
 
+		if(valid <= 0) {
+			std::cerr << "Pixel problem! - There are no precandidates";
+			exit(15);
+		}
+
 	    //Creating second pixel group, all values lower than the 3rd quartile are excluded
 	    std::sort(candidatesGroupI, candidatesGroupI + valid, compare_candidate_temperature);
 	    unsigned int pos = int(floor(valid * 0.25));
 	    std::vector<Candidate> candidatesGroupII(candidatesGroupI, candidatesGroupI + pos);
+
+	    if(candidatesGroupII.size() <= 0) {
+			std::cerr << "Pixel problem! - There are no final candidates";
+			exit(15);
+		}
 
 	    pos = int(floor(candidatesGroupII.size() * 0.5));
 	    Candidate coldPixel = candidatesGroupII[pos];
@@ -280,7 +300,7 @@ Candidate getColdPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, T
 	    free(tsQuartile);
 	    free(albedoQuartile);
 
-	    coldPixel.toString();
+	    //coldPixel.toString();
 
 	    return coldPixel;
 }

@@ -22,7 +22,7 @@ void radiance_function(TIFF* read_bands[], MTL mtl, Sensor sensor, int width_ban
         for (int i = 1; i < 8; i++){
             read_line_tiff(read_bands[i], line_band, line);
             for (int col = 0; col < width_band; col++)
-                radiance_line[col][i] = min(line_band[col] != noData ? line_band[col] * sensor.parameters[i][sensor.GRESCALE] + sensor.parameters[i][sensor.BRESCALE] : NaN, 0.0);
+                radiance_line[col][i] = max(line_band[col] != noData ? line_band[col] * sensor.parameters[i][sensor.GRESCALE] + sensor.parameters[i][sensor.BRESCALE] : NaN, 0.0);
         }
     }
 
@@ -378,7 +378,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
 	int valid = 0;
-	const int MAXC = 5000000;
+	const int MAXC = 50000000;
 	Candidate* pre_candidates;
 	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
 	if(pre_candidates == NULL) exit(1);
@@ -437,7 +437,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSH NDVI FILTER DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSH NDVI FILTER DURATION, %.5f\n", time_span_us);
 	//printf("VALID: %d\n", valid);
 
 	begin = std::chrono::steady_clock::now();
@@ -445,8 +445,14 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	//Sort the candidates by their temperatures and choose the surface temperature of the hot pixel
 	std::sort(pre_candidates, pre_candidates + valid, compare_candidate_temperature);
 	end = std::chrono::steady_clock::now();
+
+	if(valid <= 0) {
+		std::cerr << "Pixel problem! - There are no precandidates";
+		exit(15);
+	}
+
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSH SORT BY TEMP DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSH SORT BY TEMP DURATION, %.5f\n", time_span_us);
 	int pos = floor(0.95 * valid);
 	double surfaceTempHot = pre_candidates[pos].temperature;
 
@@ -472,7 +478,12 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	sort(ho_candidates.begin(), ho_candidates.end());
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSH HO MANIPULATION DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSH HO MANIPULATION DURATION, %.5f\n", time_span_us);
+
+	if(ho_candidates.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no precandidates after HO manipulation";
+		exit(15);
+	}
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH SELECT FINAL CANDIDATES BEGIN, %d\n", int(time(NULL)));
@@ -481,18 +492,6 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 
 	//Contains the final candidates which HO is in (HO_min, HO_max) and surface temperature is greater than 273.16
 	std::vector<Candidate> final_candidates;
-
-//	Candidate* final_candidates;
-//	final_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
-//
-//	Candidate* final_candidates_dev;
-//	valid = 0;
-//	double* ho_max_dev, *ho_min_dev, *surf_temp_dev;
-//
-//	HANDLE_ERROR(cudaMalloc((void**) &final_candidates_dev, 100 * sizeof(Candidate)));
-//
-//	HANDLE_ERROR(cudaMemcpy(final_candidates_dev, final_candidates, 100 * sizeof(Candidate), cudaMemcpyHostToDevice));
-//	HANDLE_ERROR(cudaMemcpy(valid_dev, &valid, sizeof(int), cudaMemcpyHostToDevice));
 
 	for (int line = 0; line < height_band; line++) {
 
@@ -513,31 +512,17 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 			}
 		}
 
-//		HANDLE_ERROR(cudaMemcpy(ndvi_dev, ndvi_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-//		HANDLE_ERROR(cudaMemcpy(ts_dev, surface_temperature_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-//		HANDLE_ERROR(cudaMemcpy(rn_dev, net_radiation_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-//		HANDLE_ERROR(cudaMemcpy(soil_heat_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-//		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-//
-//		finalFilterHot<<<(width_band + threadNum - 1) / threadNum, threadNum>>>(pre_candidates_dev, ndvi_dev, ts_dev, rn_dev, soil_heat_dev, ho_dev, valid_dev, HO_max, HO_min, surfaceTempHot, line, width_band);
-
 	}
-
-//	HANDLE_ERROR(cudaMemcpy(&valid, valid_dev, sizeof(int), cudaMemcpyDeviceToHost));
-//	HANDLE_ERROR(cudaMemcpy(final_candidates, final_candidates_dev, 100 * sizeof(Candidate), cudaMemcpyDeviceToHost));
-//
-//	HANDLE_ERROR(cudaFree(final_candidates_dev));
-//	HANDLE_ERROR(cudaFree(ndvi_dev));
-//	HANDLE_ERROR(cudaFree(ts_dev));
-//	HANDLE_ERROR(cudaFree(rn_dev));
-//	HANDLE_ERROR(cudaFree(soil_heat_dev));
-//	HANDLE_ERROR(cudaFree(ho_dev));
-//	HANDLE_ERROR(cudaFree(valid_dev));
 
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSH SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSH SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
 	//printf("VALID: %d\n", valid);
+
+	if(final_candidates.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no final candidates";
+		exit(15);
+	}
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH CV EXTRACT BEGIN, %d\n", int(time(NULL)));
@@ -547,7 +532,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	}
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSH CV EXTRACT DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSH CV EXTRACT DURATION, %.5f\n", time_span_us);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH FINAL BEGIN, %d\n", int(time(NULL)));
@@ -562,7 +547,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	}
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSH FINAL DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSH FINAL DURATION, %.5f\n", time_span_us);
 	return choosen;
 }
 
@@ -588,7 +573,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
 	int valid = 0;
-	const int MAXC = 5000000;
+	const int MAXC = 50000000;
 	Candidate* pre_candidates;
 	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
 	if(pre_candidates == NULL) exit(1);
@@ -647,7 +632,12 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSC NDVI FILTER DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSC NDVI FILTER DURATION, %.5f\n", time_span_us);
+
+	if(valid <= 0) {
+		std::cerr << "Pixel problem! - There are no precandidates";
+		exit(15);
+	}
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSC SORT BY TEMP BEGIN, %d\n", int(time(NULL)));
@@ -655,7 +645,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	std::sort(pre_candidates, pre_candidates + valid, compare_candidate_temperature);
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSC SORT BY TEMP DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSC SORT BY TEMP DURATION, %.5f\n", time_span_us);
 	int pos = floor(0.5 * valid);
 	double surfaceTempCold = pre_candidates[pos].temperature;
 
@@ -681,7 +671,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	sort(ho_candidates.begin(), ho_candidates.end());
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSC HO MANIPULATION DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSC HO MANIPULATION DURATION, %.5f\n", time_span_us);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSC SELECT FINAL CANDIDATES BEGIN, %d\n", int(time(NULL)));
@@ -713,7 +703,12 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	}
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSC SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSC SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
+
+	if(final_candidates.size() <= 0) {
+		std::cerr << "Pixel problem! - There are no final candidates";
+		exit(15);
+	}
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSC NN EXTRACT BEGIN, %d\n", int(time(NULL)));
@@ -723,7 +718,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	}
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSC NN EXTRACT DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSC NN EXTRACT DURATION, %.5f\n", time_span_us);
 
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSC FINAL BEGIN, %d\n", int(time(NULL)));
@@ -735,7 +730,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	}
 	end = std::chrono::steady_clock::now();
     time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
-	printf("PHASE 2 - PSC FINAL DURATION, %.5f\n", time_span_us);
+	//printf("PHASE 2 - PSC FINAL DURATION, %.5f\n", time_span_us);
 	return choosen;
 }
 
