@@ -51,16 +51,16 @@ CPP_DEPS += \
 src/%.o: ../src/%.cu
 	@echo 'Building file: $<'
 	@echo 'Invoking: NVCC Compiler'
-	/usr/bin/nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 -gencode arch=compute_53,code=sm_53  -odir "src" -M -o "$(@:%.o=%.d)" "$<"
-	/usr/bin/nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 --compile --relocatable-device-code=true -gencode arch=compute_53,code=compute_53 -gencode arch=compute_53,code=sm_53  -x cu -o  "$@" "$<"
+	nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 -gencode arch=compute_53,code=sm_53  -odir "src" -M -o "$(@:%.o=%.d)" "$<"
+	nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 --compile --relocatable-device-code=true -gencode arch=compute_53,code=compute_53 -gencode arch=compute_53,code=sm_53  -x cu -o  "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: NVCC Compiler'
-	/usr/bin/nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 -gencode arch=compute_53,code=sm_53  -odir "src" -M -o "$(@:%.o=%.d)" "$<"
-	/usr/bin/nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 --compile  -x c++ -o  "$@" "$<"
+	nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 -gencode arch=compute_53,code=sm_53  -odir "src" -M -o "$(@:%.o=%.d)" "$<"
+	nvcc -D_MWAITXINTRIN_H_INCLUDED -D__STRICT_ANSI__ -G -g -lineinfo -O0 -std=c++11 --compile  -x c++ -o  "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

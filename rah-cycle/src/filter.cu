@@ -9,7 +9,7 @@ __global__ void filterHot(Candidate* dst, double* ndvi, double* ts, double* net_
 
 	while (i < size) {
 
-		if (!isnan(ndvi[i]) && ndvi[i] > 0.15 && ndvi[i] < 0.20 && ts[i] > 273.16) {
+		if (*nvalid < 5000000 && !isnan(ndvi[i]) && ndvi[i] > 0.15 && ndvi[i] < 0.20 && ts[i] > 273.16) {
 			dst[atomicAdd(nvalid, 1)] = Candidate(ndvi[i], ts[i], net_radiation[i], soil_heat[i], ho[i], line, i);
 		}
 
@@ -26,7 +26,7 @@ __global__ void finalFilterHot(Candidate* dst, double* ndvi, double* ts, double*
 
 	while (i < size) {
 
-		if (definitelyGreaterThanDev(ho[i], ho_min) && definitelyLessThanDev(ho[i], ho_max) && essentiallyEqualDev(ts[i], surfaceTempHot)) {
+		if (*nvalid < 5000000 && definitelyGreaterThanDev(ho[i], ho_min) && definitelyLessThanDev(ho[i], ho_max) && essentiallyEqualDev(ts[i], surfaceTempHot)) {
 			dst[atomicAdd(nvalid, 1)] = Candidate(ndvi[i], ts[i], net_radiation[i], soil_heat[i], ho[i], line, i);
 		}
 
@@ -43,7 +43,7 @@ __global__ void filterCold(Candidate* dst, double* ndvi, double* ts, double* net
 
 	while (i < size) {
 
-		if (!isnan(ndvi[i]) && !isnan(ho[i]) && ndvi[i] < 0 && ts[i] > 273.16) {
+		if (*nvalid < 5000000 && !isnan(ndvi[i]) && !isnan(ho[i]) && ndvi[i] < 0 && ts[i] > 273.16) {
 			dst[atomicAdd(nvalid, 1)] = Candidate(ndvi[i], ts[i], net_radiation[i], soil_heat[i], ho[i], line, i);
 		}
 
@@ -66,7 +66,7 @@ __global__ void asebalFilterCold(Candidate* dst, double* ndvi, double* ts, doubl
 		bool ndviValid = !isnan(ndvi[i]) && ndvi[i] >= ndviQuartile[2]; //ndvi_line[col] >= ndviQuartile[3];
 		bool tsValid = !isnan(ts[i]) && ts[i] < tsQuartile[0];
 
-		if (albedoValid && ndviValid && tsValid) {
+		if (*nvalid < 5000000 && albedoValid && ndviValid && tsValid) {
 
 			dst[atomicAdd(nvalid, 1)] = Candidate(ndvi[i], ts[i], net_radiation[i], soil_heat[i], ho[i], line, i);
 
@@ -89,7 +89,7 @@ __global__ void asebalFilterHot(Candidate* dst, double* ndvi, double* ts, double
 		bool ndviValid = !isnan(ndvi[i]) && ndvi[i] < ndviQuartile[0];
 		bool tsValid = !isnan(ts[i]) && ts[i] > tsQuartile[2];
 
-		if (albedoValid && ndviValid && tsValid) {
+		if (*nvalid < 5000000 && albedoValid && ndviValid && tsValid) {
 
 			dst[atomicAdd(nvalid, 1)] = Candidate(ndvi[i], ts[i], net_radiation[i], soil_heat[i], ho[i], line, i);
 

@@ -378,7 +378,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
 	int valid = 0;
-	const int MAXC = 50000000;
+	const int MAXC = 5000000;
 	Candidate* pre_candidates;
 	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
 	if(pre_candidates == NULL) exit(1);
@@ -573,7 +573,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
 	int valid = 0;
-	const int MAXC = 50000000;
+	const int MAXC = 5000000;
 	Candidate* pre_candidates;
 	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
 	if(pre_candidates == NULL) exit(1);
