@@ -85,7 +85,7 @@ Candidate getHotPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, TI
     double* albedoQuartile = (double*) malloc(sizeof(double) * 4);
 
     int valid = 0;
-    const int MAXC = 5000000;
+    const int MAXC = 10000000;
 
     quartile(*ndvi, ndviQuartile, height_band, width_band);
     quartile(*surface_temperature, tsQuartile, height_band, width_band);
@@ -206,7 +206,7 @@ Candidate getColdPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, T
 	    double* albedoQuartile = (double*) malloc(sizeof(double) * 4);
 
 	    int valid = 0;
-	    const int MAXC = 5000000;
+	    const int MAXC = 10000000;
 
 	    quartile(*ndvi, ndviQuartile, height_band, width_band);
 	    quartile(*surface_temperature, tsQuartile, height_band, width_band);

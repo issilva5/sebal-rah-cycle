@@ -378,7 +378,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
 	int valid = 0;
-	const int MAXC = 5000000;
+	const int MAXC = 10000000;
 	Candidate* pre_candidates;
 	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
 	if(pre_candidates == NULL) exit(1);
@@ -443,6 +443,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	begin = std::chrono::steady_clock::now();
 	//printf("PHASE 2 - PSH SORT BY TEMP BEGIN, %d\n", int(time(NULL)));
 	//Sort the candidates by their temperatures and choose the surface temperature of the hot pixel
+	
 	std::sort(pre_candidates, pre_candidates + valid, compare_candidate_temperature);
 	end = std::chrono::steady_clock::now();
 
@@ -573,7 +574,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	double net_radiation_line[width_band], soil_heat_line[width_band];
 	double ho_line[width_band];
 	int valid = 0;
-	const int MAXC = 5000000;
+	const int MAXC = 10000000;
 	Candidate* pre_candidates;
 	pre_candidates = (Candidate*) malloc(MAXC * sizeof(Candidate));
 	if(pre_candidates == NULL) exit(1);
