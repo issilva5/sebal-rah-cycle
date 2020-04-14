@@ -35,16 +35,16 @@ void quartile(TIFF* target, double* vQuartile, int height_band, int width_band){
 
     //First quartile
     vQuartile[0] = target_values[int(floor(0.25 * pos))];
-
+    
     //Second quartile
     vQuartile[1] = target_values[int(floor(0.5 * pos))];
-
+    
     //Third quartile
     vQuartile[2] = target_values[int(floor(0.75 * pos))];
-
+    
     //Fourth quartile
     vQuartile[3] = target_values[pos-1];
-
+    
     free(target_values);
 
 }
@@ -103,22 +103,22 @@ Candidate getHotPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, TI
     Candidate *candidates_dev;
 
     HANDLE_ERROR(cudaMalloc((void**) &candidates_dev, MAXC * sizeof(Candidate)));
-	HANDLE_ERROR(cudaMalloc((void**) &ndvi_dev, width_band * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &ts_dev, width_band * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &albedo_dev, width_band * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &rn_dev, width_band * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &soil_dev, width_band * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &ho_dev, width_band * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &ndviQ_dev, 4 * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &tsQ_dev, 4 * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &albQ_dev, 4 * sizeof(double)));
-	HANDLE_ERROR(cudaMalloc((void**) &valid_dev, sizeof(int)));
+    HANDLE_ERROR(cudaMalloc((void**) &ndvi_dev, width_band * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &ts_dev, width_band * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &albedo_dev, width_band * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &rn_dev, width_band * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &soil_dev, width_band * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &ho_dev, width_band * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &ndviQ_dev, 4 * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &tsQ_dev, 4 * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &albQ_dev, 4 * sizeof(double)));
+    HANDLE_ERROR(cudaMalloc((void**) &valid_dev, sizeof(int)));
 
-	HANDLE_ERROR(cudaMemcpy(candidates_dev, candidatesGroupI, MAXC*sizeof(Candidate), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(ndviQ_dev, ndviQuartile, 4*sizeof(double), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(tsQ_dev, tsQuartile, 4*sizeof(double), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(albQ_dev, albedoQuartile, 4*sizeof(double), cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(valid_dev, &valid, sizeof(int), cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy(candidates_dev, candidatesGroupI, MAXC*sizeof(Candidate), cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy(ndviQ_dev, ndviQuartile, 4*sizeof(double), cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy(tsQ_dev, tsQuartile, 4*sizeof(double), cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy(albQ_dev, albedoQuartile, 4*sizeof(double), cudaMemcpyHostToDevice));
+    HANDLE_ERROR(cudaMemcpy(valid_dev, &valid, sizeof(int), cudaMemcpyHostToDevice));
 
 
     for(int line = 0; line < height_band; line ++){
@@ -132,35 +132,35 @@ Candidate getHotPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, TI
         read_line_tiff(*albedo, albedo_line, line);
 
         HANDLE_ERROR(cudaMemcpy(ndvi_dev, ndvi_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(ts_dev, surface_temperature_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(albedo_dev, albedo_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(rn_dev, net_radiation_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(soil_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(ts_dev, surface_temperature_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(albedo_dev, albedo_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(rn_dev, net_radiation_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(soil_dev, soil_heat_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(ho_dev, ho_line, width_band*sizeof(double), cudaMemcpyHostToDevice));
 
-		asebalFilterHot<<<(width_band + threadNum - 1) / threadNum, threadNum>>>(candidates_dev, ndvi_dev, ts_dev, albedo_dev, rn_dev, soil_dev, ho_dev, valid_dev, albQ_dev, ndviQ_dev, tsQ_dev, line, width_band);
+	asebalFilterHot<<<(width_band + threadNum - 1) / threadNum, threadNum>>>(candidates_dev, ndvi_dev, ts_dev, albedo_dev, rn_dev, soil_dev, ho_dev, valid_dev, albQ_dev, ndviQ_dev, tsQ_dev, line, width_band);
 
     }
 
     HANDLE_ERROR(cudaMemcpy(&valid, valid_dev, sizeof(int), cudaMemcpyDeviceToHost));
     HANDLE_ERROR(cudaMemcpy(candidatesGroupI, candidates_dev, MAXC * sizeof(Candidate), cudaMemcpyDeviceToHost));
 
-	HANDLE_ERROR(cudaFree(candidates_dev));
-	HANDLE_ERROR(cudaFree(ndvi_dev));
-	HANDLE_ERROR(cudaFree(ts_dev));
-	HANDLE_ERROR(cudaFree(albedo_dev));
-	HANDLE_ERROR(cudaFree(ndviQ_dev));
-	HANDLE_ERROR(cudaFree(tsQ_dev));
-	HANDLE_ERROR(cudaFree(albQ_dev));
-	HANDLE_ERROR(cudaFree(rn_dev));
-	HANDLE_ERROR(cudaFree(soil_dev));
-	HANDLE_ERROR(cudaFree(ho_dev));
-	HANDLE_ERROR(cudaFree(valid_dev));
-
-	if(valid <= 0) {
-		std::cerr << "Pixel problem! - There are no precandidates";
-		exit(15);
-	}
+    HANDLE_ERROR(cudaFree(candidates_dev));
+    HANDLE_ERROR(cudaFree(ndvi_dev));
+    HANDLE_ERROR(cudaFree(ts_dev));
+    HANDLE_ERROR(cudaFree(albedo_dev));
+    HANDLE_ERROR(cudaFree(ndviQ_dev));
+    HANDLE_ERROR(cudaFree(tsQ_dev));
+    HANDLE_ERROR(cudaFree(albQ_dev));
+    HANDLE_ERROR(cudaFree(rn_dev));
+    HANDLE_ERROR(cudaFree(soil_dev));
+    HANDLE_ERROR(cudaFree(ho_dev));
+    HANDLE_ERROR(cudaFree(valid_dev));
+	
+    if(valid <= 0) {
+	std::cerr << "Pixel problem! - There are no precandidates";
+	exit(15);
+    }
 
     //Creating second pixel group, all values lower than the 3rd quartile are excluded
     std::sort(candidatesGroupI, candidatesGroupI + valid, compare_candidate_temperature);
@@ -168,9 +168,9 @@ Candidate getHotPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, TI
     std::vector<Candidate> candidatesGroupII(candidatesGroupI + pos, candidatesGroupI + valid);
 
     if(candidatesGroupII.size() <= 0) {
-		std::cerr << "Pixel problem! - There are no final candidates";
-		exit(15);
-	}
+	std::cerr << "Pixel problem! - There are no final candidates";
+	exit(15);
+    }
 
     pos = int(floor(candidatesGroupII.size() * 0.5));
     Candidate hotPixel = candidatesGroupII[pos];
@@ -178,6 +178,7 @@ Candidate getHotPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, TI
     free(ndviQuartile);
     free(tsQuartile);
     free(albedoQuartile);
+    free(candidatesGroupI);
 
     //hotPixel.toString();
 
@@ -278,6 +279,7 @@ Candidate getColdPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, T
 		HANDLE_ERROR(cudaFree(ho_dev));
 		HANDLE_ERROR(cudaFree(valid_dev));
 
+
 		if(valid <= 0) {
 			std::cerr << "Pixel problem! - There are no precandidates";
 			exit(15);
@@ -292,15 +294,17 @@ Candidate getColdPixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** albedo, T
 			std::cerr << "Pixel problem! - There are no final candidates";
 			exit(15);
 		}
-
+	
 	    pos = int(floor(candidatesGroupII.size() * 0.5));
+	    
 	    Candidate coldPixel = candidatesGroupII[pos];
 
 	    free(ndviQuartile);
 	    free(tsQuartile);
 	    free(albedoQuartile);
+	    free(candidatesGroupI);
 
 	    //coldPixel.toString();
-
+	    
 	    return coldPixel;
 }

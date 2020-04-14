@@ -86,7 +86,7 @@ __global__ void asebalFilterHot(Candidate* dst, double* ndvi, double* ts, double
 	while (i < size) {
 
 		bool albedoValid = !isnan(albedo[i]) && albedo[i] > albedoQuartile[2];
-		bool ndviValid = !isnan(ndvi[i]) && ndvi[i] < ndviQuartile[0];
+		bool ndviValid = !isnan(ndvi[i]) && ndvi[i] > 0.10 && ndvi[i] < ndviQuartile[0];
 		bool tsValid = !isnan(ts[i]) && ts[i] > tsQuartile[2];
 
 		if (albedoValid && ndviValid && tsValid) {

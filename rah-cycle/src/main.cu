@@ -58,6 +58,7 @@ int main(int argc, char *argv[]) {
 		std::string noData_flag = argv[14];
 		if(noData_flag.substr(0,5) == "-nan=")
 			noData = atof(noData_flag.substr(5, noData_flag.size()).c_str());
+	
 	}
 
 	std::string tal_path = argv[9];
