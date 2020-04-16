@@ -449,7 +449,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	
 	std::sort(pre_candidates, pre_candidates + valid, compare_candidate_temperature);
 	end = std::chrono::steady_clock::now();
-	std::cout << valid << std::endl;
+	
 	if(valid <= 0) {
 		std::cerr << "Pixel problem! - There are no precandidates";
 		exit(15);
@@ -522,7 +522,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	//printf("PHASE 2 - PSH SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
 	//printf("VALID: %d\n", valid);
-	std::cout << final_candidates.size() << std::endl;
+	
 	if(final_candidates.size() <= 0) {
 		std::cerr << "Pixel problem! - There are no final candidates";
 		exit(15);
@@ -552,7 +552,7 @@ Candidate select_hot_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_r
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	//printf("PHASE 2 - PSH FINAL DURATION, %.5f\n", time_span_us);
-	choosen.toString();
+	//choosen.toString();
 	return choosen;
 }
 
@@ -638,7 +638,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	//printf("PHASE 2 - PSC NDVI FILTER DURATION, %.5f\n", time_span_us);
-	std::cout << valid << std::endl;
+	
 	if(valid <= 0) {
 		std::cerr << "Pixel problem! - There are no precandidates";
 		exit(15);
@@ -709,7 +709,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	end = std::chrono::steady_clock::now();
 	time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	//printf("PHASE 2 - PSC SELECT FINAL CANDIDATES DURATION, %.5f\n", time_span_us);
-	std::cout << final_candidates.size() << std::endl;
+	
 	if(final_candidates.size() <= 0) {
 		std::cerr << "Pixel problem! - There are no final candidates";
 		exit(15);
@@ -736,7 +736,7 @@ Candidate select_cold_pixel(TIFF** ndvi, TIFF** surface_temperature, TIFF** net_
 	end = std::chrono::steady_clock::now();
     time_span_us = std::chrono::duration_cast< std::chrono::duration<double, std::micro> >(end - begin);
 	//printf("PHASE 2 - PSC FINAL DURATION, %.5f\n", time_span_us);
-	choosen.toString();
+	//choosen.toString();
 	return choosen;
 }
 

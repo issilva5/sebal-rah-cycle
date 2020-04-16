@@ -1,5 +1,6 @@
 rah-cycle/exec-gdb
 .metadata/
+*.o
 RemoteSystemsTempFiles/
 rah-cycle/Debug/src
 rah-cycle/scripts/*.png
